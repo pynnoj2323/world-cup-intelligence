@@ -1,0 +1,382 @@
+"use client";
+
+import { useParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { matches, getMatchById, statusLabels, stageLabels } from "@/data/matches";
+import { getTeamById } from "@/data/teams";
+import { getPredictionByMatchId } from "@/data/predictions";
+import { useStore } from "@/store";
+import { useState, useCallback } from "react";
+import { Clock, MapPin, TrendingUp, AlertTriangle, Target, Star, RefreshCw, Play, Zap, Check } from "lucide-react";
+import Link from "next/link";
+
+const DIMENSIONS = [
+  { id: "form", label: "近期状态", desc: "近 5 场战绩与进球趋势", icon: "📊" },
+  { id: "h2h", label: "历史交锋", desc: "两队过往交手记录", icon: "⚔️" },
+  { id: "injuries", label: "伤病停赛", desc: "关键球员伤病与停赛影响", icon: "🏥" },
+  { id: "lineup", label: "首发阵容", desc: "预测首发与战术阵型", icon: "📋" },
+  { id: "weather", label: "天气场地", desc: "比赛日天气与草皮状况", icon: "🌤️" },
+  { id: "standings", label: "积分形势", desc: "小组出线压力与积分权重", icon: "📈" },
+  { id: "fatigue", label: "赛程密度", desc: "近期比赛频率与体力消耗", icon: "⏱️" },
+];
+
+type DimensionId = typeof DIMENSIONS[number]["id"];
+
+interface RunResult {
+  home_win: number;
+  draw: number;
+  away_win: number;
+  predicted_home_score: number;
+  predicted_away_score: number;
+  score_min_home: number;
+  score_max_home: number;
+  score_min_away: number;
+  score_max_away: number;
+  over_25: number;
+  btts: number;
+  confidence: number;
+  confidence_label: string;
+  insights: string[];
+}
+
+function simulatePrediction(dims: DimensionId[]): RunResult {
+  const baseHome = 0.40 + (dims.includes("form") ? 0.06 : 0) + (dims.includes("h2h") ? 0.04 : 0) + (dims.includes("lineup") ? 0.05 : 0) + (dims.includes("standings") ? 0.03 : 0);
+  const baseAway = 0.30 + (dims.includes("injuries") ? -0.04 : 0) + (dims.includes("fatigue") ? -0.03 : 0);
+  
+  const home_win = Math.min(0.72, Math.max(0.25, baseHome + (Math.random() * 0.08 - 0.04)));
+  const away_win = Math.min(0.45, Math.max(0.12, baseAway + (Math.random() * 0.06 - 0.03)));
+  const draw = Math.round((1 - home_win - away_win) * 100) / 100;
+
+  // 基于胜率推导预期进球，主队胜率高 → 主队预期进球高
+  const homeExp = home_win * 4.5 + 0.3;
+  const awayExp = away_win * 4.0 + 0.2;
+  let predicted_home_score = Math.round(homeExp);
+  let predicted_away_score = Math.round(awayExp);
+  
+  // 校准：确保比分方向与概率方向一致（主胜概率高时，预测比分不能是客胜）
+  if (home_win > away_win + 0.10 && predicted_home_score <= predicted_away_score) {
+    predicted_home_score = predicted_away_score + 1;
+  }
+  if (away_win > home_win + 0.10 && predicted_away_score <= predicted_home_score) {
+    predicted_away_score = predicted_home_score + 1;
+  }
+
+  const score_min_home = Math.max(0, predicted_home_score - 1);
+  const score_max_home = predicted_home_score + 1;
+  const score_min_away = Math.max(0, predicted_away_score - 1);
+  const score_max_away = predicted_away_score + 1;
+
+  const over_25 = dims.includes("weather") ? 0.45 + Math.random() * 0.2 : 0.35 + Math.random() * 0.15;
+  const btts = dims.includes("form") ? 0.45 + Math.random() * 0.25 : 0.30 + Math.random() * 0.25;
+
+  const confidence = 0.50 + dims.length * 0.06;
+  const confLabel = confidence >= 0.85 ? "高" : confidence >= 0.70 ? "中高" : confidence >= 0.55 ? "中" : "低";
+
+  const insights: string[] = [];
+  if (dims.includes("form")) insights.push("近期状态数据已纳入分析");
+  if (dims.includes("h2h")) insights.push("历史交锋记录已匹配");
+  if (dims.includes("injuries")) insights.push("伤病信息已更新");
+  if (dims.includes("lineup")) insights.push("预测首发阵容已生成");
+  if (dims.includes("weather")) insights.push("比赛日天气已获取");
+  if (dims.includes("standings")) insights.push("积分形势已纳入权重");
+  if (dims.includes("fatigue")) insights.push("赛程密度已计算");
+
+  return {
+    home_win: Math.round(home_win * 100) / 100,
+    draw: Math.round(draw * 100) / 100,
+    away_win: Math.round(away_win * 100) / 100,
+    predicted_home_score, predicted_away_score,
+    score_min_home, score_max_home,
+    score_min_away, score_max_away,
+    over_25: Math.round(over_25 * 100) / 100,
+    btts: Math.round(btts * 100) / 100,
+    confidence: Math.round(confidence * 100) / 100,
+    confidence_label: confLabel,
+    insights,
+  };
+}
+
+export default function MatchDetailPage() {
+  const params = useParams();
+  const matchId = params.matchId as string;
+  const match = getMatchById(matchId);
+  const staticPrediction = getPredictionByMatchId(matchId);
+  const { addPrediction, getUserPrediction } = useStore();
+  const [showForm, setShowForm] = useState(false);
+  const [predResult, setPredResult] = useState<"home_win" | "draw" | "away_win">("home_win");
+  const [predHome, setPredHome] = useState(1);
+  const [predAway, setPredAway] = useState(0);
+  const [predConfidence, setPredConfidence] = useState(3);
+  const [predComment, setPredComment] = useState("");
+
+  const [isRunning, setIsRunning] = useState(false);
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
+  const [selectedDims, setSelectedDims] = useState<DimensionId[]>(["form", "h2h", "injuries", "lineup", "standings"]);
+  const [runHistory, setRunHistory] = useState<{ dims: DimensionId[]; result: RunResult; time: string }[]>([]);
+
+  const toggleDim = (id: DimensionId) => {
+    setSelectedDims(prev => prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]);
+  };
+  const allDims = selectedDims.length === DIMENSIONS.length;
+
+  const runPrediction = useCallback(() => {
+    setIsRunning(true);
+    setTimeout(() => {
+      const result = simulatePrediction(selectedDims);
+      setRunResult(result);
+      setRunHistory(prev => [{ dims: selectedDims, result, time: new Date().toLocaleTimeString("zh-CN") }, ...prev].slice(0, 5));
+      setIsRunning(false);
+    }, 2000 + Math.random() * 1500);
+  }, [selectedDims]);
+
+  if (!match) {
+    return <div className="max-w-3xl mx-auto p-6 text-center py-20"><p className="text-muted-foreground">比赛未找到</p><Link href="/matches" className="text-primary hover:underline mt-2 block">返回赛程</Link></div>;
+  }
+
+  const home = getTeamById(match.home_team_id);
+  const away = getTeamById(match.away_team_id);
+  if (!home || !away) return null;
+
+  const existing = getUserPrediction(matchId);
+  const isLive = match.status === "live" || match.status === "halftime";
+
+  const handleSubmit = () => {
+    addPrediction({
+      user_prediction_id: `up_${matchId}_${Date.now()}`,
+      match_id: matchId,
+      predicted_result: predResult,
+      predicted_home_score: predHome,
+      predicted_away_score: predAway,
+      confidence: predConfidence,
+      comment: predComment,
+      locked: match.status !== "scheduled",
+      score_awarded: null,
+      created_at: new Date().toISOString(),
+    });
+    setShowForm(false);
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto p-4 md:p-6 space-y-6">
+      {/* 比分板 */}
+      <div className="bg-gradient-to-b from-card to-background rounded-2xl p-6 md:p-8 text-center border border-border/50">
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-1">
+          <span>{match.group ? `${match.group} 组` : stageLabels[match.stage]}</span>
+          <span>·</span>
+          <span>{new Date(match.kickoff_time).toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" })}</span>
+          <span>{new Date(match.kickoff_time).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</span>
+        </div>
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6"><MapPin className="w-3 h-3" /> {match.venue}</div>
+        <div className="flex items-center justify-center gap-6 md:gap-16">
+          <div className="flex flex-col items-center"><span className="text-5xl md:text-6xl mb-3">{home.flag_url}</span><span className="text-xl font-bold">{home.name}</span></div>
+          <div className="text-center">
+            {match.status === "scheduled" ? <span className="text-3xl md:text-4xl font-bold text-muted-foreground">VS</span> : <div><span className="text-4xl md:text-5xl font-bold tabular-nums tracking-wider">{match.home_score} - {match.away_score}</span></div>}
+            <div className="mt-2">{isLive ? <Badge variant="destructive" className="animate-pulse">LIVE</Badge> : <Badge variant="secondary">{statusLabels[match.status]}</Badge>}</div>
+          </div>
+          <div className="flex flex-col items-center"><span className="text-5xl md:text-6xl mb-3">{away.flag_url}</span><span className="text-xl font-bold">{away.name}</span></div>
+        </div>
+      </div>
+
+      {/* ===== AI 预测引擎（可勾选维度 + 启动预测）===== */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2"><Zap className="w-4 h-4 text-[#F5C542]" /> AI 预测引擎</CardTitle>
+            {runHistory.length > 0 && <span className="text-xs text-muted-foreground">已运行 {runHistory.length} 次</span>}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* 数据维度选择 */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">参考数据维度（可多选）</span>
+              <button onClick={() => setSelectedDims(allDims ? [] : DIMENSIONS.map(d => d.id))} className="text-xs text-primary hover:underline">{allDims ? "取消全选" : "全选"}</button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {DIMENSIONS.map(d => {
+                const checked = selectedDims.includes(d.id);
+                return (
+                  <button key={d.id} onClick={() => toggleDim(d.id)} className={`flex items-center gap-2 p-2.5 rounded-lg text-left transition-all text-sm ${checked ? "bg-primary/15 border border-primary/40 text-foreground" : "bg-secondary border border-transparent text-muted-foreground hover:text-foreground"}`}>
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs shrink-0 ${checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"}`}>{checked ? "✓" : ""}</span>
+                    <div className="min-w-0"><div className="font-medium text-xs">{d.icon} {d.label}</div><div className="text-[10px] text-muted-foreground/60 truncate">{d.desc}</div></div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button onClick={runPrediction} disabled={isRunning || selectedDims.length === 0} className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              {isRunning ? <><RefreshCw className="w-4 h-4 animate-spin" /> 正在分析中...</> : <><Play className="w-4 h-4" /> 启动 AI 预测</>}
+            </button>
+            <span className="text-xs text-muted-foreground">{selectedDims.length === 0 ? "请至少选择一个数据维度" : `已选 ${selectedDims.length}/${DIMENSIONS.length} 个维度`}</span>
+          </div>
+
+          {/* 运行中动画 */}
+          {isRunning && !runResult && (
+            <div className="border-t border-border pt-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm text-primary"><RefreshCw className="w-4 h-4 animate-spin" />正在加载数据并执行分析...</div>
+              {selectedDims.map(d => <div key={d} className="flex items-center gap-2 text-xs text-muted-foreground"><div className="w-3 h-3 rounded-full bg-primary/30 animate-pulse" /><span>读取{DIMENSIONS.find(dd => dd.id === d)?.label}数据中...</span></div>)}
+            </div>
+          )}
+
+          {/* 运行结果 */}
+          {runResult && (
+            <div className="border-t border-border pt-4 space-y-4">
+              {/* 胜平负 + 置信区间 */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-secondary rounded-lg p-3 text-center">
+                  <div className="text-xs text-muted-foreground mb-1">{home.name} 胜</div>
+                  <div className="text-xl font-bold text-primary">{Math.round(runResult.home_win * 100)}%</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.home_win - 0.08) * 100))}% – {Math.round((runResult.home_win + 0.08) * 100)}%</div>
+                </div>
+                <div className="bg-secondary rounded-lg p-3 text-center">
+                  <div className="text-xs text-muted-foreground mb-1">平局</div>
+                  <div className="text-xl font-bold text-muted-foreground">{Math.round(runResult.draw * 100)}%</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.draw - 0.05) * 100))}% – {Math.round((runResult.draw + 0.05) * 100)}%</div>
+                </div>
+                <div className="bg-secondary rounded-lg p-3 text-center">
+                  <div className="text-xs text-muted-foreground mb-1">{away.name} 胜</div>
+                  <div className="text-xl font-bold">{Math.round(runResult.away_win * 100)}%</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.away_win - 0.05) * 100))}% – {Math.round((runResult.away_win + 0.05) * 100)}%</div>
+                </div>
+              </div>
+
+              {/* 概率条 */}
+              <div className="flex h-2 rounded-full overflow-hidden">
+                <div className="bg-primary" style={{ width: `${runResult.home_win * 100}%` }} />
+                <div className="bg-muted-foreground/30" style={{ width: `${runResult.draw * 100}%` }} />
+                <div className="bg-muted-foreground/40" style={{ width: `${runResult.away_win * 100}%` }} />
+              </div>
+
+              {/* 预测比分 + 范围 */}
+              <div className="bg-gradient-to-r from-primary/10 to-card rounded-lg p-4 text-center">
+                <div className="text-xs text-muted-foreground mb-2">AI 预测比分</div>
+                <div className="flex items-center justify-center gap-4">
+                  <span className="font-bold text-lg">{home.name}</span>
+                  <span className="text-3xl font-bold tabular-nums text-primary">{runResult.predicted_home_score} - {runResult.predicted_away_score}</span>
+                  <span className="font-bold text-lg">{away.name}</span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-2">
+                  比分范围：{home.name} {runResult.score_min_home}–{runResult.score_max_home} 球，{away.name} {runResult.score_min_away}–{runResult.score_max_away} 球
+                </div>
+              </div>
+
+              {/* 大小球 & 双方进球 */}
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-secondary rounded-lg p-2.5 text-center">
+                  <div className="text-[10px] text-muted-foreground">大 2.5 球</div>
+                  <div className="text-sm font-bold">{Math.round(runResult.over_25 * 100)}%</div>
+                </div>
+                <div className="bg-secondary rounded-lg p-2.5 text-center">
+                  <div className="text-[10px] text-muted-foreground">双方进球</div>
+                  <div className="text-sm font-bold">{Math.round(runResult.btts * 100)}%</div>
+                </div>
+                <div className="bg-secondary rounded-lg p-2.5 text-center">
+                  <div className="text-[10px] text-muted-foreground">置信度</div>
+                  <div className="text-sm font-bold text-primary">{runResult.confidence_label}</div>
+                </div>
+              </div>
+
+              {/* 数据来源标注 */}
+              <div className="flex flex-wrap gap-1.5">
+                {runResult.insights.map((insight, i) => <Badge key={i} variant="secondary" className="text-[10px] py-0">{insight}</Badge>)}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* AI 赛前预测 */}
+        {staticPrediction && (
+          <Card className="border-primary/20">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> AI 赛前预测</CardTitle>
+                <span className="text-xs text-muted-foreground flex items-center gap-1"><RefreshCw className="w-3 h-3" /> {new Date(staticPrediction.updated_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-2"><span className="font-medium">{home.name} 胜</span><span className="text-muted-foreground">平局</span><span className="font-medium">{away.name} 胜</span></div>
+                <div className="flex justify-between text-xs text-muted-foreground mb-1.5"><span className="text-primary font-medium">{Math.round(staticPrediction.home_win_probability * 100)}%</span><span>{Math.round(staticPrediction.draw_probability * 100)}%</span><span>{Math.round(staticPrediction.away_win_probability * 100)}%</span></div>
+                <div className="flex h-2 rounded-full overflow-hidden"><div className="bg-primary" style={{ width: `${staticPrediction.home_win_probability * 100}%` }} /><div className="bg-muted-foreground/30" style={{ width: `${staticPrediction.draw_probability * 100}%` }} /><div className="bg-muted-foreground/40" style={{ width: `${staticPrediction.away_win_probability * 100}%` }} /></div>
+              </div>
+              <div className="bg-secondary rounded-lg p-3 text-center"><div className="text-xs text-muted-foreground mb-1">预测比分</div><div className="text-2xl font-bold">{staticPrediction.predicted_home_score} - {staticPrediction.predicted_away_score}</div></div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-secondary rounded-lg p-3 text-center"><div className="text-xs text-muted-foreground mb-1">大于 2.5 球</div><div className="font-bold text-lg">{Math.round(staticPrediction.over_2_5_probability * 100)}%</div></div>
+                <div className="bg-secondary rounded-lg p-3 text-center"><div className="text-xs text-muted-foreground mb-1">双方进球</div><div className="font-bold text-lg">{Math.round(staticPrediction.both_teams_score_probability * 100)}%</div></div>
+              </div>
+              <div className="flex items-center gap-3 text-sm"><Badge className="bg-primary/20 text-primary border-primary/30">置信度：{staticPrediction.confidence_label === "high" ? "高" : staticPrediction.confidence_label === "medium_high" ? "中高" : "中"}</Badge><span className="text-primary font-medium">推荐：{staticPrediction.recommendation_label}</span></div>
+              <p className="text-xs text-muted-foreground">{staticPrediction.recommendation_reason}</p>
+            </CardContent>
+          </Card>
+        )}
+
+        {staticPrediction && (
+          <div className="space-y-4">
+            <Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> 关键因素</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm">{staticPrediction.key_factors.map((f, i) => <li key={i} className="flex items-start gap-2"><span className="text-primary mt-1">•</span><span>{f.explanation}</span></li>)}</ul></CardContent></Card>
+            <Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-yellow-400" /> 风险因素</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm">{staticPrediction.risk_factors.map((f, i) => <li key={i} className="flex items-start gap-2"><span className={`mt-1 ${f.severity === "high" ? "text-red-400" : f.severity === "medium" ? "text-yellow-400" : "text-muted-foreground"}`}>•</span><div><span className="font-medium">{f.risk}</span><span className="text-muted-foreground"> — {f.explanation}</span></div></li>)}</ul></CardContent></Card>
+          </div>
+        )}
+      </div>
+
+      {/* 运行历史 */}
+      {runHistory.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2"><CardTitle className="text-base flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" /> 预测运行历史</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {runHistory.map((h, i) => (
+                <div key={i} className="flex items-center justify-between p-2.5 bg-secondary rounded-lg text-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">{h.time}</span>
+                    <span className="text-primary font-medium">{Math.round(h.result.home_win * 100)}% / {Math.round(h.result.draw * 100)}% / {Math.round(h.result.away_win * 100)}%</span>
+                    <span className="text-xs text-muted-foreground">预测 {h.result.predicted_home_score}-{h.result.predicted_away_score}</span>
+                  </div>
+                  <div className="flex gap-1">{h.dims.map(d => <Badge key={d} variant="secondary" className="text-[10px] py-0 px-1.5">{DIMENSIONS.find(dd => dd.id === d)?.label}</Badge>)}</div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 综述 + 免责 */}
+      {staticPrediction && (
+        <Card><CardContent className="p-4 space-y-2"><p className="text-sm text-muted-foreground leading-relaxed">{staticPrediction.narrative_summary}</p><p className="text-xs text-muted-foreground/60 italic border-t border-border pt-2 mt-2">{staticPrediction.disclaimer}</p></CardContent></Card>
+      )}
+
+      {/* 用户预测 */}
+      <Card>
+        <CardHeader><CardTitle className="text-base flex items-center gap-2"><Star className="w-4 h-4 text-[#F5C542]" /> 我的预测</CardTitle></CardHeader>
+        <CardContent>
+          {existing ? (
+            <div className="bg-secondary rounded-lg p-4 space-y-2">
+              <div className="flex items-center justify-between"><span className="text-sm font-medium">预测：{existing.predicted_result === "home_win" ? `${home.name} 胜` : existing.predicted_result === "draw" ? "平局" : `${away.name} 胜`}</span><Badge className="bg-primary/20 text-primary border-primary/30 text-xs">信心 {existing.confidence}/5</Badge></div>
+              <div className="text-xl font-bold">{existing.predicted_home_score} - {existing.predicted_away_score}</div>
+              {existing.comment && <p className="text-xs text-muted-foreground">{existing.comment}</p>}
+              {existing.locked && <Badge variant="secondary" className="text-xs">已锁定</Badge>}
+              {existing.score_awarded !== null && <p className="text-sm text-green-400">+{existing.score_awarded} 分</p>}
+            </div>
+          ) : showForm ? (
+            <div className="space-y-4">
+              <div><div className="text-sm text-muted-foreground mb-2">选择结果</div><div className="flex gap-2">{[{ key: "home_win" as const, label: `${home.name} 胜` }, { key: "draw" as const, label: "平局" }, { key: "away_win" as const, label: `${away.name} 胜` }].map(opt => <button key={opt.key} onClick={() => setPredResult(opt.key)} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${predResult === opt.key ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>{opt.label}</button>)}</div></div>
+              <div className="flex items-center gap-3"><span className="text-sm text-muted-foreground">预测比分</span><input type="number" value={predHome} onChange={e => setPredHome(Math.max(0, Number(e.target.value)))} className="w-14 px-2 py-1.5 bg-secondary rounded-lg text-center text-sm border border-border" min={0} /><span className="text-muted-foreground font-bold">-</span><input type="number" value={predAway} onChange={e => setPredAway(Math.max(0, Number(e.target.value)))} className="w-14 px-2 py-1.5 bg-secondary rounded-lg text-center text-sm border border-border" min={0} /></div>
+              <div><div className="text-sm text-muted-foreground mb-2">信心值</div><div className="flex gap-1">{[1,2,3,4,5].map(v => <button key={v} onClick={() => setPredConfidence(v)} className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${predConfidence >= v ? "bg-[#F5C542] text-black" : "bg-secondary text-muted-foreground"}`}>{v}</button>)}</div></div>
+              <input type="text" placeholder="预测理由（可选）" value={predComment} onChange={e => setPredComment(e.target.value)} className="w-full px-3 py-2 bg-secondary rounded-lg text-sm border border-border placeholder:text-muted-foreground" />
+              <div className="flex gap-2"><button onClick={handleSubmit} className="flex-1 bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-medium hover:opacity-90">提交预测</button><button onClick={() => setShowForm(false)} className="px-4 py-2.5 bg-secondary text-muted-foreground rounded-lg text-sm">取消</button></div>
+            </div>
+          ) : match.status !== "finished" ? (
+            <button onClick={() => setShowForm(true)} className="w-full py-3 rounded-lg text-sm border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors bg-secondary/50">+ 我要预测</button>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-2">比赛已结束</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

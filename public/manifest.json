@@ -1,0 +1,10 @@
+{
+  "name": "World Cup Intelligence",
+  "short_name": "WC Intelligence",
+  "description": "AI-powered World Cup match predictions, live scores, and analysis",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#07130D",
+  "theme_color": "#19B56B",
+  "icons": []
+}
