@@ -78,9 +78,9 @@ export default function MatchDetailPage() {
         body: JSON.stringify({
           homeTeam: { name: home!.name, rank: home!.fifa_ranking, group: home!.group },
           awayTeam: { name: away!.name, rank: away!.fifa_ranking, group: away!.group },
-          group: match.group || undefined,
-          stage: match.stage,
-          venue: match.venue,
+          group: match!.group || undefined,
+          stage: match!.stage,
+          venue: match!.venue,
           dimensions: selectedDims,
         }),
       });
