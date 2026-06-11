@@ -1,5 +1,6 @@
 "use client";
 
+// v2: DeepSeek AI 实时预测引擎
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
