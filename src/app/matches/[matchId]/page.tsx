@@ -9,7 +9,7 @@ import { matches, getMatchById, statusLabels, stageLabels } from "@/data/matches
 import { getTeamById } from "@/data/teams";
 import { getPredictionByMatchId } from "@/data/predictions";
 import { useStore } from "@/store";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Clock, MapPin, TrendingUp, AlertTriangle, Target, Star, RefreshCw, Play, Zap, Check } from "lucide-react";
 import Link from "next/link";
 
@@ -70,22 +70,31 @@ export default function MatchDetailPage() {
   };
   const allDims = selectedDims.length === DIMENSIONS.length;
 
-  // 提前声明，供 useCallback 使用（match 可能为 undefined，但函数体内已做空值保护）
-  const home = match ? getTeamById(match.home_team_id) : undefined;
-  const away = match ? getTeamById(match.away_team_id) : undefined;
+  // 用 ref 存储最新值，避免 useCallback 闭包和 TS 声明顺序问题
+  const homeRef = useRef(match ? getTeamById(match.home_team_id) : undefined);
+  const awayRef = useRef(match ? getTeamById(match.away_team_id) : undefined);
+  const matchRef = useRef(match);
+  // 始终更新 ref
+  homeRef.current = match ? getTeamById(match.home_team_id) : undefined;
+  awayRef.current = match ? getTeamById(match.away_team_id) : undefined;
+  matchRef.current = match;
 
-  const runPrediction = useCallback(async () => {
+  async function runPrediction() {
     setIsRunning(true);
     try {
+      const h = homeRef.current!;
+      const a = awayRef.current!;
+      const m = matchRef.current!;
+
       const res = await fetch("/api/predict", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          homeTeam: { name: home!.name, rank: home!.fifa_ranking, group: home!.group },
-          awayTeam: { name: away!.name, rank: away!.fifa_ranking, group: away!.group },
-          group: match!.group || undefined,
-          stage: match!.stage,
-          venue: match!.venue,
+          homeTeam: { name: h.name, rank: h.fifa_ranking, group: h.group },
+          awayTeam: { name: a.name, rank: a.fifa_ranking, group: a.group },
+          group: m.group || undefined,
+          stage: m.stage,
+          venue: m.venue,
           dimensions: selectedDims,
         }),
       });
@@ -127,11 +136,14 @@ export default function MatchDetailPage() {
     } finally {
       setIsRunning(false);
     }
-  }, [selectedDims, home, away, match]);
+  }
 
-  if (!match || !home || !away) {
+  if (!match || !homeRef.current || !awayRef.current) {
     return <div className="max-w-3xl mx-auto p-6 text-center py-20"><p className="text-muted-foreground">比赛未找到</p><Link href="/matches" className="text-primary hover:underline mt-2 block">返回赛程</Link></div>;
   }
+
+  const home = homeRef.current;
+  const away = awayRef.current;
 
   const existing = getUserPrediction(matchId);
   const isLive = match.status === "live" || match.status === "halftime";
