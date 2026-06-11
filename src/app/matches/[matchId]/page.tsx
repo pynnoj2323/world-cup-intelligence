@@ -50,6 +50,10 @@ interface RunResult {
   score_reasoning: string;
   asian_handicap_analysis: string;
   correct_score_probability: number;
+  chain_of_thought: string[];
+  data_summary: string;
+  data_key_findings: string[];
+  pipeline_metadata: { agents_used: string[] };
 }
 
 
@@ -139,6 +143,10 @@ export default function MatchDetailPage() {
         score_reasoning: data.score_reasoning || "",
         asian_handicap_analysis: data.asian_handicap_analysis || "",
         correct_score_probability: data.correct_score_probability || 0,
+        chain_of_thought: data.chain_of_thought || [],
+        data_summary: data.data_summary || "",
+        data_key_findings: data.data_key_findings || [],
+        pipeline_metadata: data.pipeline_metadata || { agents_used: ["AI"] },
       };
 
       setRunResult(result);
@@ -400,10 +408,42 @@ export default function MatchDetailPage() {
                 </div>
               )}
 
+              {/* 数据Agent */}
+              {runResult.data_summary && (
+                <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                  <div className="text-xs font-medium text-blue-400 mb-1.5">📊 Data Agent 分析</div>
+                  <p className="text-xs text-muted-foreground">{runResult.data_summary}</p>
+                  {runResult.data_key_findings.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {runResult.data_key_findings.map((f, i) => (
+                        <Badge key={i} variant="secondary" className="text-[10px] py-0 bg-blue-500/10 text-blue-400 border-blue-500/20">{f}</Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* 思维链 */}
+              {runResult.chain_of_thought.length > 0 && (
+                <div className="bg-purple-500/5 border border-purple-500/20 rounded-lg p-3">
+                  <div className="text-xs font-medium text-purple-400 mb-1.5">🧠 Prediction Agent 推理链</div>
+                  <div className="space-y-1">
+                    {runResult.chain_of_thought.map((step, i) => (
+                      <div key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="text-purple-400 font-mono shrink-0">{i + 1}.</span>
+                        <span>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* 数据来源标注 */}
               <div className="flex flex-wrap gap-1.5">
                 {runResult.insights.map((insight, i) => <Badge key={i} variant="secondary" className="text-[10px] py-0">{insight}</Badge>)}
-                <Badge variant="secondary" className="text-[10px] py-0 bg-purple-500/10 text-purple-400 border-purple-500/20">🤖 DeepSeek v3</Badge>
+                {runResult.pipeline_metadata?.agents_used.map((a: string) => (
+                  <Badge key={a} variant="secondary" className="text-[10px] py-0 bg-purple-500/10 text-purple-400 border-purple-500/20">🤖 {a}</Badge>
+                ))}
               </div>
             </div>
           )}
