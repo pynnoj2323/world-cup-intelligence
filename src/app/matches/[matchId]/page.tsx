@@ -151,7 +151,7 @@ export default function MatchDetailPage() {
         body: JSON.stringify({
           matchId,
           homeTeam: home.name, awayTeam: away.name,
-          group: match.group, stage: match.stage,
+          group: match?.group || null, stage: match?.stage || null,
           predictedHomeWin: data.home_win_probability,
           predictedDraw: data.draw_probability,
           predictedAwayWin: data.away_win_probability,
