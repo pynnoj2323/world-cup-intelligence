@@ -75,6 +75,17 @@ export default function MatchDetailPage() {
   const [selectedDims, setSelectedDims] = useState<DimensionId[]>(["form", "h2h", "injuries", "lineup", "standings"]);
   const [runHistory, setRunHistory] = useState<{ dims: DimensionId[]; result: RunResult; time: string }[]>([]);
 
+  // Review Agent state
+  const [isReviewing, setIsReviewing] = useState(false);
+  const [reviewResult, setReviewResult] = useState<any>(null);
+  const [reviewError, setReviewError] = useState("");
+
+  // Video Agent state
+  const [videoMode, setVideoMode] = useState(false);
+  const [transcriptText, setTranscriptText] = useState("");
+  const [isAnalyzingVideo, setIsAnalyzingVideo] = useState(false);
+  const [videoResult, setVideoResult] = useState<any>(null);
+
   const toggleDim = (id: DimensionId) => {
     setSelectedDims(prev => prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]);
   };
@@ -538,6 +549,200 @@ export default function MatchDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Video Insight Agent */}
+      <Card className="border-blue-500/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <span className="text-blue-400">🎬</span> Video Insight Agent
+            <Badge variant="secondary" className="text-[10px] py-0 bg-blue-500/10 text-blue-400 border-blue-500/20 ml-2">Beta</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!videoMode ? (
+            <button
+              onClick={() => setVideoMode(true)}
+              className="w-full py-3 rounded-lg text-sm border border-dashed border-border text-muted-foreground hover:text-blue-400 hover:border-blue-500/50 transition-colors bg-secondary/50"
+            >
+              🎥 粘贴解说文本，AI 提取观点
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <textarea
+                placeholder="粘贴比赛解说/评论的文字稿..."
+                value={transcriptText}
+                onChange={e => setTranscriptText(e.target.value)}
+                rows={4}
+                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm resize-none"
+              />
+              <div className="flex gap-2">
+                <button
+                  disabled={isAnalyzingVideo || transcriptText.length < 10}
+                  onClick={async () => {
+                    setIsAnalyzingVideo(true);
+                    setVideoResult(null);
+                    try {
+                      const res = await fetch("/api/video-insight", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          transcript: transcriptText,
+                          homeTeam: { name: home.name, rank: home.fifa_ranking },
+                          awayTeam: { name: away.name, rank: away.fifa_ranking },
+                        }),
+                      });
+                      const data = await res.json();
+                      setVideoResult(data);
+                    } catch {
+                      setVideoResult({ error: "分析失败" });
+                    } finally {
+                      setIsAnalyzingVideo(false);
+                    }
+                  }}
+                  className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-500 disabled:opacity-50"
+                >
+                  {isAnalyzingVideo ? "分析中..." : "启动 Video Agent"}
+                </button>
+                <button onClick={() => { setVideoMode(false); setTranscriptText(""); }} className="px-3 py-2 text-sm text-muted-foreground">取消</button>
+              </div>
+              {videoResult && (
+                <div className="space-y-3 pt-2 border-t border-border">
+                  <div className="flex items-center gap-2">
+                    <Badge className={`text-[10px] ${videoResult.overall_tendency === "home" ? "bg-green-500/20 text-green-400" : videoResult.overall_tendency === "away" ? "bg-red-500/20 text-red-400" : "bg-muted/20"}`}>
+                      综合倾向：{videoResult.overall_tendency === "home" ? home.name : videoResult.overall_tendency === "away" ? away.name : "中立"}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">可信度 {Math.round((videoResult.credibility_score || 0) * 100)}%</span>
+                  </div>
+                  {(videoResult.opinions || []).map((o: any, i: number) => (
+                    <div key={i} className="bg-secondary rounded-lg p-2.5 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{o.claim}</span>
+                        <Badge className={`text-[10px] py-0 ${o.tendency === "home" ? "bg-green-500/10 text-green-400" : o.tendency === "away" ? "bg-red-500/10 text-red-400" : "bg-muted/20"}`}>{o.tendency}</Badge>
+                      </div>
+                      <div className="text-muted-foreground">依据：{o.evidence}</div>
+                      {o.needsVerification && <div className="text-yellow-400 text-[10px]">⚠ 需核实：{o.verificationNote}</div>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Review Agent — 赛后复盘（仅已完成比赛） */}
+      {match.status === "finished" && runHistory.length > 0 && (
+        <Card className="border-yellow-500/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <span className="text-yellow-400">🔍</span> Review Agent 赛后复盘
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!reviewResult ? (
+              <div className="space-y-3">
+                <p className="text-xs text-muted-foreground">使用最近一次AI预测与真实比分对比，分析预测偏差。</p>
+                <button
+                  disabled={isReviewing}
+                  onClick={async () => {
+                    const last = runHistory[0];
+                    if (!last) return;
+                    setIsReviewing(true);
+                    setReviewError("");
+                    try {
+                      const res = await fetch("/api/review", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          predictedHomeWin: last.result.home_win,
+                          predictedDraw: last.result.draw,
+                          predictedAwayWin: last.result.away_win,
+                          predictedHomeScore: last.result.predicted_home_score,
+                          predictedAwayScore: last.result.predicted_away_score,
+                          confidence: last.result.confidence,
+                          confidenceLabel: last.result.confidence_label,
+                          recommendationLabel: last.result.recommendation_label,
+                          actualHomeScore: match.home_score!,
+                          actualAwayScore: match.away_score!,
+                          actualResult: match.home_score! > match.away_score! ? "home_win" : match.home_score! < match.away_score! ? "away_win" : "draw",
+                        }),
+                      });
+                      const data = await res.json();
+                      setReviewResult(data);
+                    } catch (e: any) {
+                      setReviewError(e.message || "复盘失败");
+                    } finally {
+                      setIsReviewing(false);
+                    }
+                  }}
+                  className="w-full bg-yellow-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-yellow-500 disabled:opacity-50"
+                >
+                  {isReviewing ? "Review Agent 分析中..." : "🔍 启动赛后复盘"}
+                </button>
+                {reviewError && <p className="text-xs text-red-400">{reviewError}</p>}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* 准确度 */}
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-secondary rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-muted-foreground mb-1">胜负预测</div>
+                    <div className={`text-lg font-bold ${reviewResult.predictionAccuracy?.resultCorrect ? "text-green-400" : "text-red-400"}`}>
+                      {reviewResult.predictionAccuracy?.resultCorrect ? "✅ 正确" : "❌ 错误"}
+                    </div>
+                  </div>
+                  <div className="bg-secondary rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-muted-foreground mb-1">比分差</div>
+                    <div className="text-lg font-bold">{reviewResult.predictionAccuracy?.scoreDiff} 球</div>
+                  </div>
+                  <div className="bg-secondary rounded-lg p-3 text-center">
+                    <div className="text-[10px] text-muted-foreground mb-1">综合评分</div>
+                    <div className="text-lg font-bold text-primary">{reviewResult.predictionAccuracy?.overallScore}分</div>
+                  </div>
+                </div>
+
+                {/* 偏差分析 */}
+                {reviewResult.biasAnalysis?.length > 0 && (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground mb-2">偏差分析</div>
+                    <div className="space-y-1.5">
+                      {reviewResult.biasAnalysis.map((b: string, i: number) => (
+                        <div key={i} className="flex items-start gap-2 bg-secondary rounded-lg p-2.5 text-xs">
+                          <span className="text-yellow-400 shrink-0">•</span>
+                          <span className="text-muted-foreground">{b}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* 优化建议 */}
+                {reviewResult.optimizationSuggestions?.length > 0 && (
+                  <div>
+                    <div className="text-xs font-medium text-muted-foreground mb-2">优化建议</div>
+                    <div className="space-y-1.5">
+                      {reviewResult.optimizationSuggestions.map((s: any, i: number) => (
+                        <div key={i} className="bg-secondary rounded-lg p-2.5 text-xs">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className={`text-[10px] py-0 ${s.priority === "high" ? "bg-red-500/20 text-red-400" : s.priority === "medium" ? "bg-yellow-500/20 text-yellow-400" : "bg-muted/20"}`}>
+                              {s.priority === "high" ? "高优" : s.priority === "medium" ? "中优" : "低优"}
+                            </Badge>
+                            <span className="font-medium">{s.area}</span>
+                          </div>
+                          <p className="text-muted-foreground">{s.issue} → {s.suggestion}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <button onClick={() => setReviewResult(null)} className="text-xs text-primary hover:underline">重新复盘</button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
     </div>
   );
 }
