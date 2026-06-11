@@ -143,6 +143,32 @@ export default function MatchDetailPage() {
 
       setRunResult(result);
       setRunHistory(prev => [{ dims: selectedDims, result, time: new Date().toLocaleTimeString("zh-CN") }, ...prev].slice(0, 5));
+
+      // 自动保存预测记录到数据库（用于复盘校准）
+      fetch("/api/predictions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matchId,
+          homeTeam: home.name, awayTeam: away.name,
+          group: match.group, stage: match.stage,
+          predictedHomeWin: data.home_win_probability,
+          predictedDraw: data.draw_probability,
+          predictedAwayWin: data.away_win_probability,
+          predictedHomeScore: data.predicted_home_score,
+          predictedAwayScore: data.predicted_away_score,
+          confidence: data.confidence,
+          confidenceLabel: data.confidence_label,
+          recommendationLabel: data.recommendation_label,
+          recommendationReason: data.recommendation_reason,
+          scorePredictionsJson: JSON.stringify(data.score_predictions),
+          keyFactorsJson: JSON.stringify(data.key_factors),
+          riskFactorsJson: JSON.stringify(data.risk_factors),
+          narrativeSummary: data.narrative_summary,
+          ensembleRuns: data.ensemble_info?.runs || 3,
+          voteAgreement: data.ensemble_info?.vote_agreement || null,
+        }),
+      }).catch(() => {/* 静默失败，不影响主流程 */});
     } catch (error: any) {
       alert(error.message || "AI 预测请求失败");
     } finally {

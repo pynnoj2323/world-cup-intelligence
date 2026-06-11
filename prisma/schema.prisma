@@ -20,6 +20,8 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+  predictions   PredictionRecord[]
+  comments      Comment[]
 }
 
 model Account {
@@ -56,4 +58,74 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+model PredictionRecord {
+  id                    String   @id @default(cuid())
+  matchId               String
+  userId                String
+  homeTeam              String
+  awayTeam              String
+  group                 String?
+  stage                 String?
+
+  // AI 预测
+  predictedHomeWin      Float
+  predictedDraw         Float
+  predictedAwayWin      Float
+  predictedHomeScore    Int
+  predictedAwayScore    Int
+  confidence            Float
+  confidenceLabel       String
+  recommendationLabel   String
+  recommendationReason  String?
+  scorePredictionsJson  String?  // JSON: 多个预测比分
+  keyFactorsJson        String?  // JSON: 关键因素
+  riskFactorsJson       String?  // JSON: 风险因素
+  narrativeSummary      String?
+  ensembleRuns          Int      @default(3)
+  voteAgreement         Int?     // 多轮一致性百分比
+
+  // 实际结果（赛后填）
+  actualHomeScore       Int?
+  actualAwayScore       Int?
+  actualResult          String?  // "home_win" | "draw" | "away_win"
+  resultUpdatedAt       DateTime?
+
+  // 校准打分
+  resultCorrect         Boolean? // 胜平负是否预测正确
+  scoreCorrect          Boolean? // 比分是否完全正确
+  scoreDiff             Int?     // 比分总差距 (|预主-实主| + |预客-实客|)
+  accuracyScore         Float?   // 综合准确度评分 0-100
+
+  // 标记
+  isRisky               Boolean  @default(false) // 是否高风险预测
+  riskNotes             String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments Comment[]
+
+  @@index([matchId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model Comment {
+  id            String   @id @default(cuid())
+  matchId       String
+  userId        String
+  content       String
+  parentId      String?  // 回复某条评论
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  predictionRecord PredictionRecord? @relation(fields: [predictionId], references: [id], onDelete: Cascade)
+  predictionId     String?
+
+  @@index([matchId])
+  @@index([createdAt])
 }
