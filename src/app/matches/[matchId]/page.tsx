@@ -42,8 +42,14 @@ interface RunResult {
   insights: string[];
   narrative_summary: string;
   key_factors: { factor: string; impact: string; explanation: string }[];
-  risk_factors: { risk: string; severity: string; explanation: string }[];
+  risk_factors: { risk: string; severity: string; explanation: string; probability: number }[];
   recommendation_label: string;
+  recommendation_reason: string;
+  score_predictions: { home: number; away: number; probability: number; scenario: string }[];
+  tactical_analysis: { home_tactics: string; away_tactics: string; key_battle: string };
+  score_reasoning: string;
+  asian_handicap_analysis: string;
+  correct_score_probability: number;
 }
 
 
@@ -125,8 +131,14 @@ export default function MatchDetailPage() {
         }).filter(Boolean),
         narrative_summary: data.narrative_summary || "",
         key_factors: data.key_factors || [],
-        risk_factors: data.risk_factors || [],
+        risk_factors: (data.risk_factors || []).map((r: any) => ({ ...r, probability: r.probability || 0.15 })),
         recommendation_label: data.recommendation_label || "",
+        recommendation_reason: data.recommendation_reason || "",
+        score_predictions: data.score_predictions || [],
+        tactical_analysis: data.tactical_analysis || { home_tactics: "", away_tactics: "", key_battle: "" },
+        score_reasoning: data.score_reasoning || "",
+        asian_handicap_analysis: data.asian_handicap_analysis || "",
+        correct_score_probability: data.correct_score_probability || 0,
       };
 
       setRunResult(result);
@@ -271,7 +283,7 @@ export default function MatchDetailPage() {
               </div>
 
               {/* 大小球 & 双方进球 */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <div className="bg-secondary rounded-lg p-2.5 text-center">
                   <div className="text-[10px] text-muted-foreground">大 2.5 球</div>
                   <div className="text-sm font-bold">{Math.round(runResult.over_25 * 100)}%</div>
@@ -281,14 +293,91 @@ export default function MatchDetailPage() {
                   <div className="text-sm font-bold">{Math.round(runResult.btts * 100)}%</div>
                 </div>
                 <div className="bg-secondary rounded-lg p-2.5 text-center">
+                  <div className="text-[10px] text-muted-foreground">准确比分</div>
+                  <div className="text-sm font-bold">{Math.round(runResult.correct_score_probability * 100)}%</div>
+                </div>
+                <div className="bg-secondary rounded-lg p-2.5 text-center">
                   <div className="text-[10px] text-muted-foreground">置信度</div>
                   <div className="text-sm font-bold text-primary">{runResult.confidence_label}</div>
                 </div>
               </div>
 
+              {/* 推荐 */}
+              <div className="bg-gradient-to-r from-primary/20 to-card rounded-lg p-3 border border-primary/30">
+                <span className="text-primary font-bold text-sm">{runResult.recommendation_label}</span>
+                <span className="text-xs text-muted-foreground mx-2">—</span>
+                <span className="text-xs text-muted-foreground">{runResult.recommendation_reason}</span>
+                {runResult.asian_handicap_analysis && (
+                  <div className="text-xs text-muted-foreground mt-1 border-t border-border/50 pt-1">{runResult.asian_handicap_analysis}</div>
+                )}
+              </div>
+
+              {/* 多比分预测 */}
+              {runResult.score_predictions.length > 0 && (
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground mb-2">比分可能性排行</div>
+                  <div className="space-y-1.5">
+                    {runResult.score_predictions.map((sp, i) => (
+                      <div key={i} className="flex items-center justify-between bg-secondary rounded-lg p-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className={`font-mono font-bold w-8 text-center ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>{sp.home}-{sp.away}</span>
+                          <span className="text-primary font-medium">{Math.round(sp.probability * 100)}%</span>
+                        </div>
+                        <span className="text-muted-foreground truncate ml-2 text-right">{sp.scenario}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 比分推理 */}
+              {runResult.score_reasoning && (
+                <div className="bg-muted/30 rounded-lg p-3">
+                  <div className="text-xs font-medium text-muted-foreground mb-1">比分预测依据</div>
+                  <p className="text-xs text-muted-foreground">{runResult.score_reasoning}</p>
+                </div>
+              )}
+
+              {/* 战术分析 */}
+              {runResult.tactical_analysis && (runResult.tactical_analysis.home_tactics || runResult.tactical_analysis.key_battle) && (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-secondary rounded-lg p-2.5">
+                    <div className="text-[10px] text-muted-foreground mb-1">{home.name} 战术</div>
+                    <div className="text-xs">{runResult.tactical_analysis.home_tactics}</div>
+                  </div>
+                  <div className="bg-secondary rounded-lg p-2.5">
+                    <div className="text-[10px] text-muted-foreground mb-1">{away.name} 战术</div>
+                    <div className="text-xs">{runResult.tactical_analysis.away_tactics}</div>
+                  </div>
+                  <div className="bg-secondary rounded-lg p-2.5">
+                    <div className="text-[10px] text-muted-foreground mb-1">关键对决</div>
+                    <div className="text-xs">{runResult.tactical_analysis.key_battle}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* 风险因素 */}
+              {runResult.risk_factors.length > 0 && (
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 text-yellow-400" /> 风险提示</div>
+                  <div className="space-y-1.5">
+                    {runResult.risk_factors.map((rf, i) => (
+                      <div key={i} className="flex items-start gap-2 bg-secondary rounded-lg p-2 text-xs">
+                        <span className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${rf.severity === "high" ? "bg-red-400" : rf.severity === "medium" ? "bg-yellow-400" : "bg-muted-foreground"}`} />
+                        <div className="flex-1 min-w-0">
+                          <span className="font-medium">{rf.risk}</span>
+                          <span className="text-muted-foreground">（{Math.round(rf.probability * 100)}%）— {rf.explanation}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* 数据来源标注 */}
               <div className="flex flex-wrap gap-1.5">
                 {runResult.insights.map((insight, i) => <Badge key={i} variant="secondary" className="text-[10px] py-0">{insight}</Badge>)}
+                <Badge variant="secondary" className="text-[10px] py-0 bg-purple-500/10 text-purple-400 border-purple-500/20">🤖 DeepSeek v3</Badge>
               </div>
             </div>
           )}
