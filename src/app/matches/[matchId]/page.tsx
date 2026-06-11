@@ -39,64 +39,12 @@ interface RunResult {
   confidence: number;
   confidence_label: string;
   insights: string[];
+  narrative_summary: string;
+  key_factors: { factor: string; impact: string; explanation: string }[];
+  risk_factors: { risk: string; severity: string; explanation: string }[];
+  recommendation_label: string;
 }
 
-function simulatePrediction(dims: DimensionId[]): RunResult {
-  const baseHome = 0.40 + (dims.includes("form") ? 0.06 : 0) + (dims.includes("h2h") ? 0.04 : 0) + (dims.includes("lineup") ? 0.05 : 0) + (dims.includes("standings") ? 0.03 : 0);
-  const baseAway = 0.30 + (dims.includes("injuries") ? -0.04 : 0) + (dims.includes("fatigue") ? -0.03 : 0);
-  
-  const home_win = Math.min(0.72, Math.max(0.25, baseHome + (Math.random() * 0.08 - 0.04)));
-  const away_win = Math.min(0.45, Math.max(0.12, baseAway + (Math.random() * 0.06 - 0.03)));
-  const draw = Math.round((1 - home_win - away_win) * 100) / 100;
-
-  // 基于胜率推导预期进球，主队胜率高 → 主队预期进球高
-  const homeExp = home_win * 4.5 + 0.3;
-  const awayExp = away_win * 4.0 + 0.2;
-  let predicted_home_score = Math.round(homeExp);
-  let predicted_away_score = Math.round(awayExp);
-  
-  // 校准：确保比分方向与概率方向一致（主胜概率高时，预测比分不能是客胜）
-  if (home_win > away_win + 0.10 && predicted_home_score <= predicted_away_score) {
-    predicted_home_score = predicted_away_score + 1;
-  }
-  if (away_win > home_win + 0.10 && predicted_away_score <= predicted_home_score) {
-    predicted_away_score = predicted_home_score + 1;
-  }
-
-  const score_min_home = Math.max(0, predicted_home_score - 1);
-  const score_max_home = predicted_home_score + 1;
-  const score_min_away = Math.max(0, predicted_away_score - 1);
-  const score_max_away = predicted_away_score + 1;
-
-  const over_25 = dims.includes("weather") ? 0.45 + Math.random() * 0.2 : 0.35 + Math.random() * 0.15;
-  const btts = dims.includes("form") ? 0.45 + Math.random() * 0.25 : 0.30 + Math.random() * 0.25;
-
-  const confidence = 0.50 + dims.length * 0.06;
-  const confLabel = confidence >= 0.85 ? "高" : confidence >= 0.70 ? "中高" : confidence >= 0.55 ? "中" : "低";
-
-  const insights: string[] = [];
-  if (dims.includes("form")) insights.push("近期状态数据已纳入分析");
-  if (dims.includes("h2h")) insights.push("历史交锋记录已匹配");
-  if (dims.includes("injuries")) insights.push("伤病信息已更新");
-  if (dims.includes("lineup")) insights.push("预测首发阵容已生成");
-  if (dims.includes("weather")) insights.push("比赛日天气已获取");
-  if (dims.includes("standings")) insights.push("积分形势已纳入权重");
-  if (dims.includes("fatigue")) insights.push("赛程密度已计算");
-
-  return {
-    home_win: Math.round(home_win * 100) / 100,
-    draw: Math.round(draw * 100) / 100,
-    away_win: Math.round(away_win * 100) / 100,
-    predicted_home_score, predicted_away_score,
-    score_min_home, score_max_home,
-    score_min_away, score_max_away,
-    over_25: Math.round(over_25 * 100) / 100,
-    btts: Math.round(btts * 100) / 100,
-    confidence: Math.round(confidence * 100) / 100,
-    confidence_label: confLabel,
-    insights,
-  };
-}
 
 export default function MatchDetailPage() {
   const params = useParams();
@@ -121,15 +69,60 @@ export default function MatchDetailPage() {
   };
   const allDims = selectedDims.length === DIMENSIONS.length;
 
-  const runPrediction = useCallback(() => {
+  const runPrediction = useCallback(async () => {
     setIsRunning(true);
-    setTimeout(() => {
-      const result = simulatePrediction(selectedDims);
+    try {
+      const res = await fetch("/api/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          homeTeam: { name: home!.name, rank: home!.fifa_ranking, group: home!.group },
+          awayTeam: { name: away!.name, rank: away!.fifa_ranking, group: away!.group },
+          group: match.group || undefined,
+          stage: match.stage,
+          venue: match.venue,
+          dimensions: selectedDims,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "AI 服务异常");
+      }
+
+      const data = await res.json();
+      const result: RunResult = {
+        home_win: data.home_win_probability,
+        draw: data.draw_probability,
+        away_win: data.away_win_probability,
+        predicted_home_score: data.predicted_home_score,
+        predicted_away_score: data.predicted_away_score,
+        score_min_home: Math.max(0, data.predicted_home_score - 1),
+        score_max_home: data.predicted_home_score + 1,
+        score_min_away: Math.max(0, data.predicted_away_score - 1),
+        score_max_away: data.predicted_away_score + 1,
+        over_25: data.over_25_probability,
+        btts: data.both_teams_score_probability,
+        confidence: data.confidence,
+        confidence_label: data.confidence_label === "high" ? "高" : data.confidence_label === "medium_high" ? "中高" : data.confidence_label === "medium" ? "中" : "低",
+        insights: selectedDims.map(d => {
+          const found = DIMENSIONS.find(dd => dd.id === d);
+          return found ? `${found.icon} ${found.label}数据已纳入分析` : "";
+        }).filter(Boolean),
+        narrative_summary: data.narrative_summary || "",
+        key_factors: data.key_factors || [],
+        risk_factors: data.risk_factors || [],
+        recommendation_label: data.recommendation_label || "",
+      };
+
       setRunResult(result);
       setRunHistory(prev => [{ dims: selectedDims, result, time: new Date().toLocaleTimeString("zh-CN") }, ...prev].slice(0, 5));
+    } catch (error: any) {
+      alert(error.message || "AI 预测请求失败");
+    } finally {
       setIsRunning(false);
-    }, 2000 + Math.random() * 1500);
-  }, [selectedDims]);
+    }
+  }, [selectedDims, home, away, match]);
 
   if (!match) {
     return <div className="max-w-3xl mx-auto p-6 text-center py-20"><p className="text-muted-foreground">比赛未找到</p><Link href="/matches" className="text-primary hover:underline mt-2 block">返回赛程</Link></div>;
