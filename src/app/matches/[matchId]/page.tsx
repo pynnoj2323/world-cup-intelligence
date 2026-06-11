@@ -70,6 +70,10 @@ export default function MatchDetailPage() {
   };
   const allDims = selectedDims.length === DIMENSIONS.length;
 
+  // 提前声明，供 useCallback 使用（match 可能为 undefined，但函数体内已做空值保护）
+  const home = match ? getTeamById(match.home_team_id) : undefined;
+  const away = match ? getTeamById(match.away_team_id) : undefined;
+
   const runPrediction = useCallback(async () => {
     setIsRunning(true);
     try {
@@ -125,13 +129,9 @@ export default function MatchDetailPage() {
     }
   }, [selectedDims, home, away, match]);
 
-  if (!match) {
+  if (!match || !home || !away) {
     return <div className="max-w-3xl mx-auto p-6 text-center py-20"><p className="text-muted-foreground">比赛未找到</p><Link href="/matches" className="text-primary hover:underline mt-2 block">返回赛程</Link></div>;
   }
-
-  const home = getTeamById(match.home_team_id);
-  const away = getTeamById(match.away_team_id);
-  if (!home || !away) return null;
 
   const existing = getUserPrediction(matchId);
   const isLive = match.status === "live" || match.status === "halftime";
