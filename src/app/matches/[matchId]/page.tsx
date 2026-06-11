@@ -202,8 +202,8 @@ export default function MatchDetailPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={runPrediction} disabled={isRunning || selectedDims.length === 0} className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-lg text-sm font-medium hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-              {isRunning ? <><RefreshCw className="w-4 h-4 animate-spin" /> 正在分析中...</> : <><Play className="w-4 h-4" /> 启动 AI 预测</>}
+            <button onClick={runPrediction} disabled={isRunning || selectedDims.length === 0} className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+              {isRunning ? <><RefreshCw className="w-4 h-4 animate-spin" /> DeepSeek 分析中...</> : <><Zap className="w-4 h-4" /> 🤖 DeepSeek AI 预测</>}
             </button>
             <span className="text-xs text-muted-foreground">{selectedDims.length === 0 ? "请至少选择一个数据维度" : `已选 ${selectedDims.length}/${DIMENSIONS.length} 个维度`}</span>
           </div>
