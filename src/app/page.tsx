@@ -9,7 +9,8 @@ import { standings, getStandingsByGroup } from "@/data/standings";
 import { championProbabilities, predictions, getPredictionByMatchId, type Prediction } from "@/data/predictions";
 import { useStore } from "@/store";
 import Link from "next/link";
-import { Trophy, Circle, Star, Target, Zap, ChevronRight } from "lucide-react";
+import { Trophy, Circle, Star, Target, Zap, ChevronRight, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
 
 function LiveBadge() {
   return (
@@ -21,12 +22,30 @@ function LiveBadge() {
 
 function MatchCard({ matchId }: { matchId: string }) {
   const match = getMatchById(matchId);
+  const [overrides, setOverrides] = useState<Record<string, any>>({});
   if (!match) return null;
   const home = getTeamById(match.home_team_id);
   const away = getTeamById(match.away_team_id);
   if (!home || !away) return null;
-  const isLive = match.status === "live" || match.status === "halftime";
-  const isFinished = match.status === "finished";
+
+  const override = overrides[matchId];
+  const displayStatus = override?.status || match.status;
+  const displayHome = override?.homeScore ?? match.home_score ?? 0;
+  const displayAway = override?.awayScore ?? match.away_score ?? 0;
+  const isLive = displayStatus === "live" || displayStatus === "halftime";
+  const isFinished = displayStatus === "finished";
+  const hasScore = displayHome > 0 || displayAway > 0;
+
+  useEffect(() => {
+    fetch("/api/matches/status")
+      .then(r => r.json())
+      .then((data: any[]) => {
+        const map: Record<string, any> = {};
+        data.forEach((d: any) => map[d.matchId] = d);
+        setOverrides(map);
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <Link href={`/matches/${matchId}`}>
@@ -49,12 +68,12 @@ function MatchCard({ matchId }: { matchId: string }) {
             <span className="font-semibold text-sm">{home.name}</span>
           </div>
           <div className="flex flex-col items-center px-4">
-            {match.status === "scheduled" ? (
+            {!hasScore && displayStatus === "scheduled" ? (
               <span className="text-xl font-bold text-muted-foreground">VS</span>
             ) : (
               <div className="text-center">
                 <span className="text-2xl font-bold tabular-nums tracking-wider">
-                  {match.home_score} - {match.away_score}
+                  {displayHome} - {displayAway}
                 </span>
                 {isLive && (
                   <div className="text-xs text-red-400 mt-0.5">
