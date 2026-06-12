@@ -102,6 +102,8 @@ export default function MatchDetailPage() {
     } catch {}
   };
   const handleRefresh = async () => {
+    // 先触发自动拉取最新比分
+    try { await fetch("/api/matches/auto-update"); } catch {}
     await fetchMatchStatus();
     setLastRefresh(new Date().toLocaleTimeString("zh-CN"));
   };
