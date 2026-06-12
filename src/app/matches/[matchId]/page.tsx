@@ -561,38 +561,83 @@ export default function MatchDetailPage() {
       </Card>
 
       <div className="grid md:grid-cols-2 gap-6">
-        {/* AI 赛前预测 */}
-        {staticPrediction && (
+        {/* AI 赛前预测 — 统一显示：静态预测 或 用户AI预测 */}
+        {(staticPrediction || runResult) && (
           <Card className="border-primary/20">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base flex items-center gap-2"><Target className="w-4 h-4 text-primary" /> AI 赛前预测</CardTitle>
-                <span className="text-xs text-muted-foreground flex items-center gap-1"><RefreshCw className="w-3 h-3" /> {new Date(staticPrediction.updated_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</span>
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" />
+                  {runResult ? "用户AI预测" : (staticPrediction ? new Date(staticPrediction.updated_at).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }) : "")}
+                </span>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div>
-                <div className="flex justify-between text-sm mb-2"><span className="font-medium">{home.name} 胜</span><span className="text-muted-foreground">平局</span><span className="font-medium">{away.name} 胜</span></div>
-                <div className="flex justify-between text-xs text-muted-foreground mb-1.5"><span className="text-primary font-medium">{Math.round(staticPrediction.home_win_probability * 100)}%</span><span>{Math.round(staticPrediction.draw_probability * 100)}%</span><span>{Math.round(staticPrediction.away_win_probability * 100)}%</span></div>
-                <div className="flex h-2 rounded-full overflow-hidden"><div className="bg-primary" style={{ width: `${staticPrediction.home_win_probability * 100}%` }} /><div className="bg-muted-foreground/30" style={{ width: `${staticPrediction.draw_probability * 100}%` }} /><div className="bg-muted-foreground/40" style={{ width: `${staticPrediction.away_win_probability * 100}%` }} /></div>
-              </div>
-              <div className="bg-secondary rounded-lg p-3 text-center"><div className="text-xs text-muted-foreground mb-1">预测比分</div><div className="text-2xl font-bold">{staticPrediction.predicted_home_score} - {staticPrediction.predicted_away_score}</div></div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div className="bg-secondary rounded-lg p-3 text-center"><div className="text-xs text-muted-foreground mb-1">大于 2.5 球</div><div className="font-bold text-lg">{Math.round(staticPrediction.over_2_5_probability * 100)}%</div></div>
-                <div className="bg-secondary rounded-lg p-3 text-center"><div className="text-xs text-muted-foreground mb-1">双方进球</div><div className="font-bold text-lg">{Math.round(staticPrediction.both_teams_score_probability * 100)}%</div></div>
-              </div>
-              <div className="flex items-center gap-3 text-sm"><Badge className="bg-primary/20 text-primary border-primary/30">置信度：{staticPrediction.confidence_label === "high" ? "高" : staticPrediction.confidence_label === "medium_high" ? "中高" : "中"}</Badge><span className="text-primary font-medium">推荐：{staticPrediction.recommendation_label}</span></div>
-              <p className="text-xs text-muted-foreground">{staticPrediction.recommendation_reason}</p>
+              {/* 优先显示用户预测，否则显示静态预测 */}
+              {(() => {
+                const p = runResult || {
+                  home_win: staticPrediction!.home_win_probability,
+                  draw: staticPrediction!.draw_probability,
+                  away_win: staticPrediction!.away_win_probability,
+                  predicted_home_score: staticPrediction!.predicted_home_score,
+                  predicted_away_score: staticPrediction!.predicted_away_score,
+                  over_25: staticPrediction!.over_2_5_probability,
+                  btts: staticPrediction!.both_teams_score_probability,
+                  confidence_label: staticPrediction!.confidence_label,
+                  recommendation_label: staticPrediction!.recommendation_label,
+                  recommendation_reason: staticPrediction!.recommendation_reason,
+                } as any;
+                return (
+                  <>
+                    <div>
+                      <div className="flex justify-between text-sm mb-2"><span className="font-medium">{home.name} 胜</span><span className="text-muted-foreground">平局</span><span className="font-medium">{away.name} 胜</span></div>
+                      <div className="flex justify-between text-xs text-muted-foreground mb-1.5">
+                        <span className="text-primary font-medium">{Math.round(p.home_win * 100)}%</span>
+                        <span>{Math.round(p.draw * 100)}%</span>
+                        <span>{Math.round(p.away_win * 100)}%</span>
+                      </div>
+                      <div className="flex h-2 rounded-full overflow-hidden">
+                        <div className="bg-primary" style={{ width: `${p.home_win * 100}%` }} />
+                        <div className="bg-muted-foreground/30" style={{ width: `${p.draw * 100}%` }} />
+                        <div className="bg-muted-foreground/40" style={{ width: `${p.away_win * 100}%` }} />
+                      </div>
+                    </div>
+                    <div className="bg-secondary rounded-lg p-3 text-center">
+                      <div className="text-xs text-muted-foreground mb-1">预测比分</div>
+                      <div className="text-2xl font-bold">{p.predicted_home_score} - {p.predicted_away_score}</div>
+                    </div>
+                    <div className="flex items-center gap-3 text-sm">
+                      <Badge className="bg-primary/20 text-primary border-primary/30">置信度：{p.confidence_label}</Badge>
+                      <span className="text-primary font-medium">推荐：{p.recommendation_label}</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">{p.recommendation_reason}</p>
+                    {runResult && (
+                      <div className="text-[10px] text-muted-foreground/60 text-right">来源：用户AI预测引擎</div>
+                    )}
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
 
-        {staticPrediction && (
-          <div className="space-y-4">
-            <Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> 关键因素</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm">{staticPrediction.key_factors.map((f, i) => <li key={i} className="flex items-start gap-2"><span className="text-primary mt-1">•</span><span>{f.explanation}</span></li>)}</ul></CardContent></Card>
-            <Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-yellow-400" /> 风险因素</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm">{staticPrediction.risk_factors.map((f, i) => <li key={i} className="flex items-start gap-2"><span className={`mt-1 ${f.severity === "high" ? "text-red-400" : f.severity === "medium" ? "text-yellow-400" : "text-muted-foreground"}`}>•</span><div><span className="font-medium">{f.risk}</span><span className="text-muted-foreground"> — {f.explanation}</span></div></li>)}</ul></CardContent></Card>
-          </div>
-        )}
+        {/* 关键因素 + 风险因素 */}
+        {(() => {
+          const factors = runResult?.key_factors || staticPrediction?.key_factors || [];
+          const risks = runResult?.risk_factors || staticPrediction?.risk_factors || [];
+          if (factors.length === 0 && risks.length === 0) return null;
+          return (
+            <div className="space-y-4">
+              {factors.length > 0 && (
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><TrendingUp className="w-4 h-4 text-primary" /> 关键因素</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm">{factors.map((f, i) => <li key={i} className="flex items-start gap-2"><span className="text-primary mt-1">•</span><span>{f.explanation}</span></li>)}</ul></CardContent></Card>
+              )}
+              {risks.length > 0 && (
+                <Card><CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-yellow-400" /> 风险因素</CardTitle></CardHeader><CardContent><ul className="space-y-2 text-sm">{risks.map((f, i) => <li key={i} className="flex items-start gap-2"><span className={`mt-1 ${f.severity === "high" ? "text-red-400" : f.severity === "medium" ? "text-yellow-400" : "text-muted-foreground"}`}>•</span><div><span className="font-medium">{f.risk}</span><span className="text-muted-foreground"> — {f.explanation}</span></div></li>)}</ul></CardContent></Card>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       {/* 运行历史 */}
