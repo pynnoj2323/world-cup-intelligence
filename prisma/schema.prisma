@@ -129,3 +129,13 @@ model Comment {
   @@index([matchId])
   @@index([createdAt])
 }
+
+model MatchStatus {
+  id        String   @id @default(cuid())
+  matchId   String   @unique
+  status    String   // "scheduled" | "live" | "halftime" | "finished"
+  homeScore Int      @default(0)
+  awayScore Int      @default(0)
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}

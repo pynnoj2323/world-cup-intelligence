@@ -9,7 +9,7 @@ import { matches, getMatchById, statusLabels, stageLabels } from "@/data/matches
 import { getTeamById } from "@/data/teams";
 import { getPredictionByMatchId } from "@/data/predictions";
 import { useStore } from "@/store";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Clock, MapPin, TrendingUp, AlertTriangle, Target, Star, RefreshCw, Play, Zap, Check } from "lucide-react";
 import Link from "next/link";
 
@@ -85,6 +85,31 @@ export default function MatchDetailPage() {
   const [transcriptText, setTranscriptText] = useState("");
   const [isAnalyzingVideo, setIsAnalyzingVideo] = useState(false);
   const [videoResult, setVideoResult] = useState<any>(null);
+
+  // 从DB拉取比赛状态覆盖（比分/状态，每60秒刷新）
+  const [matchOverride, setMatchOverride] = useState<{ status?: string; homeScore?: number; awayScore?: number } | null>(null);
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/matches/status?matchId=${matchId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.length > 0) {
+            const r = data[0];
+            setMatchOverride({ status: r.status, homeScore: r.homeScore, awayScore: r.awayScore });
+          }
+        }
+      } catch {}
+    };
+    poll();
+    const timer = setInterval(poll, 60000);
+    return () => clearInterval(timer);
+  }, [matchId]);
+
+  // 合并静态数据+DB覆盖
+  const displayStatus = matchOverride?.status || match?.status || "scheduled";
+  const displayHomeScore = matchOverride?.homeScore ?? match?.home_score ?? 0;
+  const displayAwayScore = matchOverride?.awayScore ?? match?.away_score ?? 0;
 
   const toggleDim = (id: DimensionId) => {
     setSelectedDims(prev => prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]);
@@ -203,7 +228,7 @@ export default function MatchDetailPage() {
   const away = awayRef.current;
 
   const existing = getUserPrediction(matchId);
-  const isLive = match.status === "live" || match.status === "halftime";
+  const isLive = displayStatus === "live" || displayStatus === "halftime";
 
   const handleSubmit = () => {
     addPrediction({
@@ -214,7 +239,7 @@ export default function MatchDetailPage() {
       predicted_away_score: predAway,
       confidence: predConfidence,
       comment: predComment,
-      locked: match.status !== "scheduled",
+      locked: displayStatus !== "scheduled",
       score_awarded: null,
       created_at: new Date().toISOString(),
     });
@@ -235,8 +260,8 @@ export default function MatchDetailPage() {
         <div className="flex items-center justify-center gap-6 md:gap-16">
           <div className="flex flex-col items-center"><span className="text-5xl md:text-6xl mb-3">{home.flag_url}</span><span className="text-xl font-bold">{home.name}</span></div>
           <div className="text-center">
-            {match.status === "scheduled" ? <span className="text-3xl md:text-4xl font-bold text-muted-foreground">VS</span> : <div><span className="text-4xl md:text-5xl font-bold tabular-nums tracking-wider">{match.home_score} - {match.away_score}</span></div>}
-            <div className="mt-2">{isLive ? <Badge variant="destructive" className="animate-pulse">LIVE</Badge> : <Badge variant="secondary">{statusLabels[match.status]}</Badge>}</div>
+            {displayStatus === "scheduled" ? <span className="text-3xl md:text-4xl font-bold text-muted-foreground">VS</span> : <div><span className="text-4xl md:text-5xl font-bold tabular-nums tracking-wider">{displayHomeScore} - {displayAwayScore}</span></div>}
+            <div className="mt-2">{isLive ? <Badge variant="destructive" className="animate-pulse">LIVE</Badge> : <Badge variant="secondary">{displayStatus === "finished" ? "已结束" : displayStatus === "scheduled" ? "未开始" : displayStatus}</Badge>}</div>
           </div>
           <div className="flex flex-col items-center"><span className="text-5xl md:text-6xl mb-3">{away.flag_url}</span><span className="text-xl font-bold">{away.name}</span></div>
         </div>
@@ -542,7 +567,7 @@ export default function MatchDetailPage() {
               <input type="text" placeholder="预测理由（可选）" value={predComment} onChange={e => setPredComment(e.target.value)} className="w-full px-3 py-2 bg-secondary rounded-lg text-sm border border-border placeholder:text-muted-foreground" />
               <div className="flex gap-2"><button onClick={handleSubmit} className="flex-1 bg-primary text-primary-foreground py-2.5 rounded-lg text-sm font-medium hover:opacity-90">提交预测</button><button onClick={() => setShowForm(false)} className="px-4 py-2.5 bg-secondary text-muted-foreground rounded-lg text-sm">取消</button></div>
             </div>
-          ) : match.status !== "finished" ? (
+          ) : displayStatus !== "finished" ? (
             <button onClick={() => setShowForm(true)} className="w-full py-3 rounded-lg text-sm border border-dashed border-border text-muted-foreground hover:text-primary hover:border-primary/50 transition-colors bg-secondary/50">+ 我要预测</button>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-2">比赛已结束</p>
@@ -631,7 +656,7 @@ export default function MatchDetailPage() {
       </Card>
 
       {/* Review Agent — 赛后复盘（仅已完成比赛） */}
-      {match.status === "finished" && runHistory.length > 0 && (
+      {displayStatus === "finished" && runHistory.length > 0 && (
         <Card className="border-yellow-500/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -662,9 +687,9 @@ export default function MatchDetailPage() {
                           confidence: last.result.confidence,
                           confidenceLabel: last.result.confidence_label,
                           recommendationLabel: last.result.recommendation_label,
-                          actualHomeScore: match.home_score!,
-                          actualAwayScore: match.away_score!,
-                          actualResult: match.home_score! > match.away_score! ? "home_win" : match.home_score! < match.away_score! ? "away_win" : "draw",
+                          actualHomeScore: displayHomeScore,
+                          actualAwayScore: displayAwayScore,
+                          actualResult: displayHomeScore > displayAwayScore ? "home_win" : displayHomeScore < displayAwayScore ? "away_win" : "draw",
                         }),
                       });
                       const data = await res.json();

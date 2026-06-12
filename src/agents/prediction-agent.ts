@@ -55,12 +55,20 @@ ${data.stats ? `## 模拟数据\n控球率:${data.stats.possession?.[0]}%-${data
 - 排名差<10→接近均衡
 - 小组赛首轮平局+5%
 
+## ⚠️ 严格输出规则（违反以下任何一条都算错误）
+1. **比分必须是整数**，如 1, 2, 3。绝不允许 1.5、0.8 等小数
+2. **概率不超过0.85**（单场最大），不出现 1.0/100%
+3. **三个主胜比分的概率之和不超过0.70**
+4. **三个比分不能重复**，必须有至少2分的总球差变化（如1-0, 2-0, 3-1 是合法的；1-0, 1-1, 1-2 也是合法的；1-0, 1-0, 1-0 非法）
+5. **比分必须多样化**：覆盖低比分(0-0,1-0,1-1)、中比分(2-0,2-1)、高比分(3-1,3-2)至少各一个
+6. **思维链必须有3步实质性分析**，不是泛泛而谈
+
 ## 思维链要求
-先输出你的分析步骤，再输出JSON预测。
+必须写3-4步具体分析（如评估排名差距→分析攻防特点→考虑比赛背景→综合判断），每步30字以上。
 
 ## 输出JSON
 {
-  "chain_of_thought": ["步骤1:评估实力差距...","步骤2:分析战术风格...","步骤3:综合判断..."],
+  "chain_of_thought": ["步骤1: 具体分析...", "步骤2: 具体分析...", "步骤3: 具体分析...", "步骤4: 最终判断..."],
   "home_win_probability": 0.xx,
   "draw_probability": 0.xx,
   "away_win_probability": 0.xx,
@@ -86,6 +94,40 @@ ${data.stats ? `## 模拟数据\n控球率:${data.stats.possession?.[0]}%-${data
   "risk_factors": [{"risk":"","severity":"medium","probability":0.xx,"explanation":""}],
   "narrative_summary": "综合分析150字"
 }`;
+}
+
+// 验证并修正 LLM 输出（杜绝小数比分、100%概率等问题）
+function validateAndSanitize(parsed: any): PredictionAgentOutput {
+  const clamp = (v: number, min: number, max: number) => Math.round(Math.max(min, Math.min(max, Number(v) || 0)) * 100) / 100;
+  const toInt = (v: number, min: number, max: number) => Math.max(min, Math.min(max, Math.round(Number(v) || 0)));
+  const seen = new Set<string>();
+
+  return {
+    homeWin: clamp(parsed.home_win_probability, 0.05, 0.85),
+    draw: clamp(parsed.draw_probability, 0.05, 0.85),
+    awayWin: clamp(parsed.away_win_probability, 0.05, 0.85),
+    predictedHomeScore: toInt(parsed.predicted_home_score, 0, 6),
+    predictedAwayScore: toInt(parsed.predicted_away_score, 0, 6),
+    scorePredictions: (parsed.score_predictions || [])
+      .map((s: any) => ({ home: toInt(s.home, 0, 5), away: toInt(s.away, 0, 5), probability: clamp(s.probability, 0.02, 0.55), scenario: s.scenario || "" }))
+      .filter((s: any) => { const k = `${s.home}-${s.away}`; if (seen.has(k)) return false; seen.add(k); return true; })
+      .slice(0, 3),
+    scoreReasoning: parsed.score_reasoning || "",
+    over25Prob: clamp(parsed.over_25_probability, 0.1, 0.9),
+    bttsProb: clamp(parsed.both_teams_score_probability, 0.1, 0.9),
+    correctScoreProb: clamp(parsed.correct_score_probability, 0.01, 0.65),
+    asianHandicap: parsed.asian_handicap_analysis || "",
+    confidence: clamp(parsed.confidence, 0.3, 0.9),
+    confidenceLabel: parsed.confidence_label || "medium",
+    recommendationType: parsed.recommendation_type || "home_win",
+    recommendationLabel: parsed.recommendation_label || "",
+    recommendationReason: parsed.recommendation_reason || "",
+    tacticalAnalysis: parsed.tactical_analysis || {},
+    keyFactors: parsed.key_factors || [],
+    riskFactors: (parsed.risk_factors || []).map((r: any) => ({ ...r, probability: clamp(r.probability, 0.01, 0.65) })),
+    narrativeSummary: parsed.narrative_summary || "",
+    chainOfThought: parsed.chain_of_thought || [],
+  };
 }
 
 async function singleRun(prompt: string): Promise<PredictionAgentOutput> {
@@ -115,7 +157,7 @@ async function singleRun(prompt: string): Promise<PredictionAgentOutput> {
   const cleaned = content.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
 
   const parsed = JSON.parse(cleaned);
-  return {
+  return validateAndSanitize(parsed);
     homeWin: parsed.home_win_probability,
     draw: parsed.draw_probability,
     awayWin: parsed.away_win_probability,
