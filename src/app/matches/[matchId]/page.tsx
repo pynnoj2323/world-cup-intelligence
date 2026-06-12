@@ -730,7 +730,7 @@ export default function MatchDetailPage() {
       </Card>
 
       {/* Review Agent — 赛后复盘（仅已完成比赛） */}
-      {(displayStatus === "finished" && runHistory.length > 0) && (
+      {displayStatus === "finished" && (
         <Card className="border-yellow-500/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
@@ -738,14 +738,20 @@ export default function MatchDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {!reviewResult ? (
+            {!runResult ? (
+              <div className="text-center py-4 bg-secondary rounded-lg">
+                <p className="text-sm text-muted-foreground">尚未进行AI预测</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">先在"AI 预测引擎"中运行预测，再来复盘</p>
+              </div>
+            ) : !reviewResult ? (
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">使用最近一次AI预测与真实比分对比，分析预测偏差。</p>
+                <div className="bg-secondary rounded-lg p-3 text-xs space-y-1">
+                  <div>AI预测：<span className="font-bold">{runResult.recommendation_label}</span>，比分 {runResult.predicted_home_score}-{runResult.predicted_away_score}</div>
+                  <div>实际结果：<span className="font-bold">{displayHomeScore}-{displayAwayScore}</span></div>
+                </div>
                 <button
                   disabled={isReviewing}
                   onClick={async () => {
-                    const last = runHistory[0];
-                    if (!last) return;
                     setIsReviewing(true);
                     setReviewError("");
                     try {
@@ -753,14 +759,14 @@ export default function MatchDetailPage() {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                          predictedHomeWin: last.result.home_win,
-                          predictedDraw: last.result.draw,
-                          predictedAwayWin: last.result.away_win,
-                          predictedHomeScore: last.result.predicted_home_score,
-                          predictedAwayScore: last.result.predicted_away_score,
-                          confidence: last.result.confidence,
-                          confidenceLabel: last.result.confidence_label,
-                          recommendationLabel: last.result.recommendation_label,
+                          predictedHomeWin: runResult!.home_win,
+                          predictedDraw: runResult!.draw,
+                          predictedAwayWin: runResult!.away_win,
+                          predictedHomeScore: runResult!.predicted_home_score,
+                          predictedAwayScore: runResult!.predicted_away_score,
+                          confidence: runResult!.confidence,
+                          confidenceLabel: runResult!.confidence_label,
+                          recommendationLabel: runResult!.recommendation_label,
                           actualHomeScore: displayHomeScore,
                           actualAwayScore: displayAwayScore,
                           actualResult: displayHomeScore > displayAwayScore ? "home_win" : displayHomeScore < displayAwayScore ? "away_win" : "draw",
@@ -799,8 +805,6 @@ export default function MatchDetailPage() {
                     <div className="text-lg font-bold text-primary">{reviewResult.predictionAccuracy?.overallScore}分</div>
                   </div>
                 </div>
-
-                {/* 偏差分析 */}
                 {reviewResult.biasAnalysis?.length > 0 && (
                   <div>
                     <div className="text-xs font-medium text-muted-foreground mb-2">偏差分析</div>
@@ -814,8 +818,6 @@ export default function MatchDetailPage() {
                     </div>
                   </div>
                 )}
-
-                {/* 优化建议 */}
                 {reviewResult.optimizationSuggestions?.length > 0 && (
                   <div>
                     <div className="text-xs font-medium text-muted-foreground mb-2">优化建议</div>
@@ -823,9 +825,9 @@ export default function MatchDetailPage() {
                       {reviewResult.optimizationSuggestions.map((s: any, i: number) => (
                         <div key={i} className="bg-secondary rounded-lg p-2.5 text-xs">
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge className={`text-[10px] py-0 ${s.priority === "high" ? "bg-red-500/20 text-red-400" : s.priority === "medium" ? "bg-yellow-500/20 text-yellow-400" : "bg-muted/20"}`}>
+                            <span className={`text-[10px] px-1 py-0.5 rounded ${s.priority === "high" ? "bg-red-500/20 text-red-400" : s.priority === "medium" ? "bg-yellow-500/20 text-yellow-400" : "bg-muted/20"}`}>
                               {s.priority === "high" ? "高优" : s.priority === "medium" ? "中优" : "低优"}
-                            </Badge>
+                            </span>
                             <span className="font-medium">{s.area}</span>
                           </div>
                           <p className="text-muted-foreground">{s.issue} → {s.suggestion}</p>
@@ -834,7 +836,6 @@ export default function MatchDetailPage() {
                     </div>
                   </div>
                 )}
-
                 <button onClick={() => setReviewResult(null)} className="text-xs text-primary hover:underline">重新复盘</button>
               </div>
             )}
