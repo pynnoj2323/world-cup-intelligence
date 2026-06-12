@@ -80,6 +80,44 @@ export default function MatchDetailPage() {
   const [reviewResult, setReviewResult] = useState<any>(null);
   const [reviewError, setReviewError] = useState("");
 
+  // 页面加载时从数据库恢复之前保存的预测
+  useEffect(() => {
+    fetch(`/api/predictions?matchId=${matchId}&limit=1`)
+      .then(r => r.json())
+      .then((data: any[]) => {
+        if (data.length > 0) {
+          const p = data[0];
+          const result: RunResult = {
+            home_win: p.predictedHomeWin,
+            draw: p.predictedDraw,
+            away_win: p.predictedAwayWin,
+            predicted_home_score: p.predictedHomeScore,
+            predicted_away_score: p.predictedAwayScore,
+            score_min_home: Math.max(0, p.predictedHomeScore - 1),
+            score_max_home: p.predictedHomeScore + 1,
+            score_min_away: Math.max(0, p.predictedAwayScore - 1),
+            score_max_away: p.predictedAwayScore + 1,
+            over_25: 0, btts: 0, correct_score_probability: 0,
+            confidence: p.confidence,
+            confidence_label: p.confidenceLabel === "high" ? "高" : p.confidenceLabel === "medium_high" ? "中高" : p.confidenceLabel === "medium" ? "中" : "低",
+            insights: [], narrative_summary: p.narrativeSummary || "",
+            key_factors: JSON.parse(p.keyFactorsJson || "[]"),
+            risk_factors: JSON.parse(p.riskFactorsJson || "[]"),
+            recommendation_label: p.recommendationLabel || "",
+            recommendation_reason: p.recommendationReason || "",
+            score_predictions: JSON.parse(p.scorePredictionsJson || "[]"),
+            tactical_analysis: {} as any, score_reasoning: "",
+            asian_handicap_analysis: "", chain_of_thought: [],
+            data_summary: "", data_key_findings: [],
+            pipeline_metadata: { agents_used: ["AI预测"] },
+          };
+          setRunResult(result);
+          setRunHistory([{ dims: [], result, time: new Date(p.createdAt).toLocaleTimeString("zh-CN") }]);
+        }
+      })
+      .catch(() => {});
+  }, [matchId]);
+
   // Video Agent state
   const [videoMode, setVideoMode] = useState(false);
   const [transcriptText, setTranscriptText] = useState("");
@@ -692,7 +730,7 @@ export default function MatchDetailPage() {
       </Card>
 
       {/* Review Agent — 赛后复盘（仅已完成比赛） */}
-      {displayStatus === "finished" && runHistory.length > 0 && (
+      {(displayStatus === "finished" && runHistory.length > 0) && (
         <Card className="border-yellow-500/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
