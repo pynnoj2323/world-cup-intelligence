@@ -159,28 +159,6 @@ async function singleRun(prompt: string): Promise<PredictionAgentOutput> {
 
   const parsed = JSON.parse(cleaned);
   return validateAndSanitize(parsed);
-    homeWin: parsed.home_win_probability,
-    draw: parsed.draw_probability,
-    awayWin: parsed.away_win_probability,
-    predictedHomeScore: parsed.predicted_home_score,
-    predictedAwayScore: parsed.predicted_away_score,
-    scorePredictions: parsed.score_predictions || [],
-    scoreReasoning: parsed.score_reasoning || "",
-    over25Prob: parsed.over_25_probability,
-    bttsProb: parsed.both_teams_score_probability,
-    correctScoreProb: parsed.correct_score_probability || 0,
-    asianHandicap: parsed.asian_handicap_analysis || "",
-    confidence: parsed.confidence,
-    confidenceLabel: parsed.confidence_label,
-    recommendationType: parsed.recommendation_type,
-    recommendationLabel: parsed.recommendation_label,
-    recommendationReason: parsed.recommendation_reason || "",
-    tacticalAnalysis: parsed.tactical_analysis || {},
-    keyFactors: parsed.key_factors || [],
-    riskFactors: parsed.risk_factors || [],
-    narrativeSummary: parsed.narrative_summary || "",
-    chainOfThought: parsed.chain_of_thought || [],
-  };
 }
 
 function mergePredictions(
