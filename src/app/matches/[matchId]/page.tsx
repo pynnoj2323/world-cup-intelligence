@@ -287,31 +287,54 @@ export default function MatchDetailPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* 数据维度选择 */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-muted-foreground">参考数据维度（可多选）</span>
-              <button onClick={() => setSelectedDims(allDims ? [] : DIMENSIONS.map(d => d.id))} className="text-xs text-primary hover:underline">{allDims ? "取消全选" : "全选"}</button>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {DIMENSIONS.map(d => {
-                const checked = selectedDims.includes(d.id);
-                return (
-                  <button key={d.id} onClick={() => toggleDim(d.id)} className={`flex items-center gap-2 p-2.5 rounded-lg text-left transition-all text-sm ${checked ? "bg-primary/15 border border-primary/40 text-foreground" : "bg-secondary border border-transparent text-muted-foreground hover:text-foreground"}`}>
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs shrink-0 ${checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"}`}>{checked ? "✓" : ""}</span>
-                    <div className="min-w-0"><div className="font-medium text-xs">{d.icon} {d.label}</div><div className="text-[10px] text-muted-foreground/60 truncate">{d.desc}</div></div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          {/* 未结束 → 显示预测控件 */}
+          {displayStatus !== "finished" && !runResult && (
+            <>
+              {/* 数据维度选择 */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-muted-foreground">参考数据维度（可多选）</span>
+                  <button onClick={() => setSelectedDims(allDims ? [] : DIMENSIONS.map(d => d.id))} className="text-xs text-primary hover:underline">{allDims ? "取消全选" : "全选"}</button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {DIMENSIONS.map(d => {
+                    const checked = selectedDims.includes(d.id);
+                    return (
+                      <button key={d.id} onClick={() => toggleDim(d.id)} className={`flex items-center gap-2 p-2.5 rounded-lg text-left transition-all text-sm ${checked ? "bg-primary/15 border border-primary/40 text-foreground" : "bg-secondary border border-transparent text-muted-foreground hover:text-foreground"}`}>
+                        <span className={`w-4 h-4 rounded border flex items-center justify-center text-xs shrink-0 ${checked ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/40"}`}>{checked ? "✓" : ""}</span>
+                        <div className="min-w-0"><div className="font-medium text-xs">{d.icon} {d.label}</div><div className="text-[10px] text-muted-foreground/60 truncate">{d.desc}</div></div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-          <div className="flex items-center gap-3">
-            <button onClick={runPrediction} disabled={isRunning || selectedDims.length === 0} className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-              {isRunning ? <><RefreshCw className="w-4 h-4 animate-spin" /> DeepSeek 分析中...</> : <><Zap className="w-4 h-4" /> 🤖 DeepSeek AI 预测</>}
-            </button>
-            <span className="text-xs text-muted-foreground">{selectedDims.length === 0 ? "请至少选择一个数据维度" : `已选 ${selectedDims.length}/${DIMENSIONS.length} 个维度`}</span>
-          </div>
+              <div className="flex items-center gap-3">
+                <button onClick={runPrediction} disabled={isRunning || selectedDims.length === 0} className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                  {isRunning ? <><RefreshCw className="w-4 h-4 animate-spin" /> DeepSeek 分析中...</> : <><Zap className="w-4 h-4" /> 🤖 DeepSeek AI 预测</>}
+                </button>
+                <span className="text-xs text-muted-foreground">{selectedDims.length === 0 ? "请至少选择一个数据维度" : `已选 ${selectedDims.length}/${DIMENSIONS.length} 个维度`}</span>
+              </div>
+            </>
+          )}
+
+          {/* 已结束但未预测 */}
+          {displayStatus === "finished" && !runResult && (
+            <div className="text-center py-6 bg-secondary rounded-lg">
+              <p className="text-sm text-muted-foreground">比赛已结束</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">预测功能已关闭，可查看赛后复盘</p>
+            </div>
+          )}
+
+          {/* 已有结果 → 允许重新预测（覆盖旧结果） */}
+          {displayStatus !== "finished" && runResult && (
+            <div className="flex items-center gap-3">
+              <button onClick={runPrediction} disabled={isRunning || selectedDims.length === 0} className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+                {isRunning ? <><RefreshCw className="w-4 h-4 animate-spin" /> DeepSeek 分析中...</> : <><RefreshCw className="w-4 h-4" /> 🤖 重新预测</>}
+              </button>
+              <span className="text-xs text-muted-foreground">{selectedDims.length === 0 ? "请至少选择一个数据维度" : `已选 ${selectedDims.length}/${DIMENSIONS.length} 个维度`}</span>
+            </div>
+          )}
 
           {/* 运行中动画 */}
           {isRunning && !runResult && (
@@ -328,26 +351,26 @@ export default function MatchDetailPage() {
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <div className="text-xs text-muted-foreground mb-1">{home.name} 胜</div>
-                  <div className="text-xl font-bold text-primary">{Math.round(runResult.home_win * 100)}%</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.home_win - 0.08) * 100))}% – {Math.round((runResult.home_win + 0.08) * 100)}%</div>
+                  <div className="text-xl font-bold text-primary">{Math.min(99, Math.round(runResult.home_win * 100))}%</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.home_win - 0.08) * 100))}% – {Math.min(99, Math.round((runResult.home_win + 0.08) * 100))}%</div>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <div className="text-xs text-muted-foreground mb-1">平局</div>
-                  <div className="text-xl font-bold text-muted-foreground">{Math.round(runResult.draw * 100)}%</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.draw - 0.05) * 100))}% – {Math.round((runResult.draw + 0.05) * 100)}%</div>
+                  <div className="text-xl font-bold text-muted-foreground">{Math.min(99, Math.round(runResult.draw * 100))}%</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.draw - 0.05) * 100))}% – {Math.min(99, Math.round((runResult.draw + 0.05) * 100))}%</div>
                 </div>
                 <div className="bg-secondary rounded-lg p-3 text-center">
                   <div className="text-xs text-muted-foreground mb-1">{away.name} 胜</div>
-                  <div className="text-xl font-bold">{Math.round(runResult.away_win * 100)}%</div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.away_win - 0.05) * 100))}% – {Math.round((runResult.away_win + 0.05) * 100)}%</div>
+                  <div className="text-xl font-bold">{Math.min(99, Math.round(runResult.away_win * 100))}%</div>
+                  <div className="text-[10px] text-muted-foreground mt-0.5">{Math.max(0, Math.round((runResult.away_win - 0.05) * 100))}% – {Math.min(99, Math.round((runResult.away_win + 0.05) * 100))}%</div>
                 </div>
               </div>
 
               {/* 概率条 */}
               <div className="flex h-2 rounded-full overflow-hidden">
-                <div className="bg-primary" style={{ width: `${runResult.home_win * 100}%` }} />
-                <div className="bg-muted-foreground/30" style={{ width: `${runResult.draw * 100}%` }} />
-                <div className="bg-muted-foreground/40" style={{ width: `${runResult.away_win * 100}%` }} />
+                <div className="bg-primary" style={{ width: `${Math.min(99, runResult.home_win * 100)}%` }} />
+                <div className="bg-muted-foreground/30" style={{ width: `${Math.min(99, runResult.draw * 100)}%` }} />
+                <div className="bg-muted-foreground/40" style={{ width: `${Math.min(99, runResult.away_win * 100)}%` }} />
               </div>
 
               {/* 预测比分 + 范围 */}
