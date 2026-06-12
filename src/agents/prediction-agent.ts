@@ -55,13 +55,14 @@ ${data.stats ? `## 模拟数据\n控球率:${data.stats.possession?.[0]}%-${data
 - 排名差<10→接近均衡
 - 小组赛首轮平局+5%
 
-## ⚠️ 严格输出规则（违反以下任何一条都算错误）
-1. **比分必须是整数**，如 1, 2, 3。绝不允许 1.5、0.8 等小数
-2. **概率不超过0.85**（单场最大），不出现 1.0/100%
-3. **三个主胜比分的概率之和不超过0.70**
-4. **三个比分不能重复**，必须有至少2分的总球差变化（如1-0, 2-0, 3-1 是合法的；1-0, 1-1, 1-2 也是合法的；1-0, 1-0, 1-0 非法）
-5. **比分必须多样化**：覆盖低比分(0-0,1-0,1-1)、中比分(2-0,2-1)、高比分(3-1,3-2)至少各一个
-6. **思维链必须有3步实质性分析**，不是泛泛而谈
+## ⚠️ 严格输出规则
+1. **比分必须是整数**，范围 0-7（如 4:0、5:1 在实力悬殊时完全可能）
+2. **概率不超过0.92**，不出现 1.0/100%
+3. **三个主胜比分的概率之和不超过0.72**
+4. **三个比分不重复且覆盖不同进球数**，如 1-0、2-1、4-0（低/中/高各一个）
+5. **实力悬殊时大胆预测大比分**（如排名差>30时，3:0、4:0、5:1 都是合理预测）
+6. **参考历史数据**：世界杯历史上约15%的比赛出现4+总进球。大比分虽概率低但真实存在
+7. **思维链必须有4步实质性分析**，包含历史数据参照
 
 ## 思维链要求
 必须写3-4步具体分析（如评估排名差距→分析攻防特点→考虑比赛背景→综合判断），每步30字以上。
@@ -103,13 +104,13 @@ function validateAndSanitize(parsed: any): PredictionAgentOutput {
   const seen = new Set<string>();
 
   return {
-    homeWin: clamp(parsed.home_win_probability, 0.05, 0.85),
-    draw: clamp(parsed.draw_probability, 0.05, 0.85),
-    awayWin: clamp(parsed.away_win_probability, 0.05, 0.85),
-    predictedHomeScore: toInt(parsed.predicted_home_score, 0, 6),
-    predictedAwayScore: toInt(parsed.predicted_away_score, 0, 6),
+    homeWin: clamp(parsed.home_win_probability, 0.05, 0.92),
+    draw: clamp(parsed.draw_probability, 0.05, 0.92),
+    awayWin: clamp(parsed.away_win_probability, 0.05, 0.92),
+    predictedHomeScore: toInt(parsed.predicted_home_score, 0, 7),
+    predictedAwayScore: toInt(parsed.predicted_away_score, 0, 7),
     scorePredictions: (parsed.score_predictions || [])
-      .map((s: any) => ({ home: toInt(s.home, 0, 5), away: toInt(s.away, 0, 5), probability: clamp(s.probability, 0.02, 0.55), scenario: s.scenario || "" }))
+      .map((s: any) => ({ home: toInt(s.home, 0, 7), away: toInt(s.away, 0, 7), probability: clamp(s.probability, 0.01, 0.6), scenario: s.scenario || "" }))
       .filter((s: any) => { const k = `${s.home}-${s.away}`; if (seen.has(k)) return false; seen.add(k); return true; })
       .slice(0, 3),
     scoreReasoning: parsed.score_reasoning || "",

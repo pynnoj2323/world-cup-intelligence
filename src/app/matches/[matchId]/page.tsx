@@ -86,23 +86,28 @@ export default function MatchDetailPage() {
   const [isAnalyzingVideo, setIsAnalyzingVideo] = useState(false);
   const [videoResult, setVideoResult] = useState<any>(null);
 
-  // 从DB拉取比赛状态覆盖（比分/状态，每60秒刷新）
+  // 从DB拉取比赛状态覆盖（每30分钟自动刷新 + 手动刷新）
   const [matchOverride, setMatchOverride] = useState<{ status?: string; homeScore?: number; awayScore?: number } | null>(null);
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await fetch(`/api/matches/status?matchId=${matchId}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.length > 0) {
-            const r = data[0];
-            setMatchOverride({ status: r.status, homeScore: r.homeScore, awayScore: r.awayScore });
-          }
+  const [lastRefresh, setLastRefresh] = useState("");
+  const fetchMatchStatus = async () => {
+    try {
+      const res = await fetch(`/api/matches/status?matchId=${matchId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.length > 0) {
+          const r = data[0];
+          setMatchOverride({ status: r.status, homeScore: r.homeScore, awayScore: r.awayScore });
         }
-      } catch {}
-    };
-    poll();
-    const timer = setInterval(poll, 60000);
+      }
+    } catch {}
+  };
+  const handleRefresh = async () => {
+    await fetchMatchStatus();
+    setLastRefresh(new Date().toLocaleTimeString("zh-CN"));
+  };
+  useEffect(() => {
+    fetchMatchStatus();
+    const timer = setInterval(fetchMatchStatus, 30 * 60 * 1000); // 30分钟
     return () => clearInterval(timer);
   }, [matchId]);
 
@@ -256,7 +261,13 @@ export default function MatchDetailPage() {
           <span>{new Date(match.kickoff_time).toLocaleDateString("zh-CN", { month: "long", day: "numeric", weekday: "short" })}</span>
           <span>{new Date(match.kickoff_time).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</span>
         </div>
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6"><MapPin className="w-3 h-3" /> {match.venue}</div>
+        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6">
+          <MapPin className="w-3 h-3" /> {match.venue}
+          <span className="mx-2">|</span>
+          <button onClick={handleRefresh} className="flex items-center gap-1 text-xs text-primary hover:underline" title="手动刷新比分">
+            <RefreshCw className="w-3 h-3" /> {lastRefresh ? `已刷新 ${lastRefresh}` : "刷新比分"}
+          </button>
+        </div>
         <div className="flex items-center justify-center gap-6 md:gap-16">
           <div className="flex flex-col items-center"><span className="text-5xl md:text-6xl mb-3">{home.flag_url}</span><span className="text-xl font-bold">{home.name}</span></div>
           <div className="text-center">
