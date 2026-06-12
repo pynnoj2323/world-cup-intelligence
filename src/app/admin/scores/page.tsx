@@ -12,7 +12,7 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AdminScoresPage() {
-  const [updates, setUpdates] = useState<Record<string, { status: string; homeScore: number; awayScore: number }>>({});
+  const [updates, setUpdates] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
 
@@ -21,9 +21,7 @@ export default function AdminScoresPage() {
       .then(r => r.json())
       .then((data: any[]) => {
         const map: Record<string, any> = {};
-        data.forEach((d: any) => {
-          map[d.matchId] = { status: d.status, homeScore: d.homeScore, awayScore: d.awayScore };
-        });
+        data.forEach((d: any) => { map[d.matchId] = d; });
         setUpdates(map);
       })
       .catch(() => {});
@@ -42,9 +40,7 @@ export default function AdminScoresPage() {
         setMsg(`✅ ${matchId} 已更新`);
         setTimeout(() => setMsg(""), 2000);
       }
-    } catch (e) {
-      setMsg("❌ 更新失败");
-    }
+    } catch { setMsg("❌ 更新失败"); }
     setSaving(null);
   };
 
@@ -55,7 +51,6 @@ export default function AdminScoresPage() {
     }));
   };
 
-  // 按比赛时间排序，显示已完成和进行中的在前
   const sorted = [...matches].sort((a, b) => {
     const sa = updates[a.match_id]?.status || a.status;
     const sb = updates[b.match_id]?.status || b.status;
@@ -66,7 +61,7 @@ export default function AdminScoresPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-4">
-      <h1 className="text-xl font-bold">比赛状态管理</h1>
+      <h1 className="text-xl font-bold">⚽ 比分管理</h1>
       {msg && <div className="bg-green-500/10 text-green-400 text-sm p-2 rounded">{msg}</div>}
 
       <div className="space-y-2">
@@ -74,54 +69,23 @@ export default function AdminScoresPage() {
           const home = getTeamById(m.home_team_id);
           const away = getTeamById(m.away_team_id);
           const u = updates[m.match_id] || { status: "scheduled", homeScore: 0, awayScore: 0 };
-          const currentStatus = u.status || m.status;
-
           return (
             <div key={m.match_id} className="bg-card rounded-lg p-3 flex items-center gap-3 flex-wrap">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <span>{home?.name || m.home_team_id}</span>
-                  <span className="text-muted-foreground">vs</span>
-                  <span>{away?.name || m.away_team_id}</span>
+                  <span>{home?.name}</span><span className="text-muted-foreground">vs</span><span>{away?.name}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {m.group ? `${m.group}组` : m.stage} · {new Date(m.kickoff_time).toLocaleDateString("zh-CN")}
                 </div>
               </div>
-
-              <select
-                value={currentStatus}
-                onChange={e => setVal(m.match_id, "status", e.target.value)}
-                className="bg-secondary border border-border rounded px-2 py-1 text-xs"
-              >
-                {STATUS_OPTIONS.map(o => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
+              <select value={u.status} onChange={e => setVal(m.match_id, "status", e.target.value)} className="bg-secondary border rounded px-2 py-1 text-xs">
+                {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
-
-              <input
-                type="number"
-                min={0}
-                max={15}
-                value={u.homeScore}
-                onChange={e => setVal(m.match_id, "homeScore", e.target.value)}
-                className="w-12 bg-secondary border border-border rounded px-2 py-1 text-xs text-center"
-              />
-              <span className="text-muted-foreground text-xs">-</span>
-              <input
-                type="number"
-                min={0}
-                max={15}
-                value={u.awayScore}
-                onChange={e => setVal(m.match_id, "awayScore", e.target.value)}
-                className="w-12 bg-secondary border border-border rounded px-2 py-1 text-xs text-center"
-              />
-
-              <button
-                disabled={saving === m.match_id}
-                onClick={() => updateMatch(m.match_id)}
-                className="bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded"
-              >
+              <input type="number" min={0} max={15} value={u.homeScore} onChange={e => setVal(m.match_id, "homeScore", e.target.value)} className="w-12 bg-secondary border rounded px-2 py-1 text-xs text-center" />
+              <span className="text-xs text-muted-foreground">-</span>
+              <input type="number" min={0} max={15} value={u.awayScore} onChange={e => setVal(m.match_id, "awayScore", e.target.value)} className="w-12 bg-secondary border rounded px-2 py-1 text-xs text-center" />
+              <button disabled={saving === m.match_id} onClick={() => updateMatch(m.match_id)} className="bg-primary text-primary-foreground text-xs px-3 py-1.5 rounded">
                 {saving === m.match_id ? "..." : "更新"}
               </button>
             </div>
