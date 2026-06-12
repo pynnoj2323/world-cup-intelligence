@@ -108,6 +108,7 @@ export default function MatchDetailPage() {
             score_predictions: JSON.parse(p.scorePredictionsJson || "[]"),
             tactical_analysis: JSON.parse(p.tacticalAnalysisJson || "{}"),
             score_reasoning: p.scoreReasoning || "",
+            asian_handicap_analysis: p.asianHandicapAnalysis || "",
             chain_of_thought: JSON.parse(p.chainOfThoughtJson || "[]"),
             data_summary: "", data_key_findings: [],
             pipeline_metadata: { agents_used: ["AI预测"] },
