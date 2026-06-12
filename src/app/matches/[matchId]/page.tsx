@@ -106,8 +106,9 @@ export default function MatchDetailPage() {
             recommendation_label: p.recommendationLabel || "",
             recommendation_reason: p.recommendationReason || "",
             score_predictions: JSON.parse(p.scorePredictionsJson || "[]"),
-            tactical_analysis: {} as any, score_reasoning: "",
-            asian_handicap_analysis: "", chain_of_thought: [],
+            tactical_analysis: JSON.parse(p.tacticalAnalysisJson || "{}"),
+            score_reasoning: p.scoreReasoning || "",
+            chain_of_thought: JSON.parse(p.chainOfThoughtJson || "[]"),
             data_summary: "", data_key_findings: [],
             pipeline_metadata: { agents_used: ["AI预测"] },
           };
@@ -254,8 +255,9 @@ export default function MatchDetailPage() {
           keyFactorsJson: JSON.stringify(data.key_factors),
           riskFactorsJson: JSON.stringify(data.risk_factors),
           narrativeSummary: data.narrative_summary,
-          ensembleRuns: data.ensemble_info?.runs || 3,
-          voteAgreement: data.ensemble_info?.vote_agreement || null,
+          scoreReasoning: data.score_reasoning,
+          tacticalAnalysisJson: JSON.stringify(data.tactical_analysis),
+          chainOfThoughtJson: JSON.stringify(data.chain_of_thought),
         }),
       }).catch(() => {/* 静默失败，不影响主流程 */});
     } catch (error: any) {
@@ -603,15 +605,79 @@ export default function MatchDetailPage() {
                         <div className="bg-muted-foreground/40" style={{ width: `${p.away_win * 100}%` }} />
                       </div>
                     </div>
-                    <div className="bg-secondary rounded-lg p-3 text-center">
-                      <div className="text-xs text-muted-foreground mb-1">预测比分</div>
-                      <div className="text-2xl font-bold">{p.predicted_home_score} - {p.predicted_away_score}</div>
-                    </div>
+
+                    {/* 多比分预测 */}
+                    {p.score_predictions?.length > 0 && (
+                      <div>
+                        <div className="text-xs text-muted-foreground mb-2">比分可能性</div>
+                        <div className="space-y-1.5">
+                          {p.score_predictions.map((sp: any, i: number) => (
+                            <div key={i} className="flex items-center justify-between bg-secondary rounded-lg p-2 text-xs">
+                              <div className="flex items-center gap-2">
+                                <span className={`font-mono font-bold ${i === 0 ? "text-primary" : "text-muted-foreground"}`}>{sp.home}-{sp.away}</span>
+                                <span className="text-primary">{Math.round(sp.probability * 100)}%</span>
+                              </div>
+                              <span className="text-muted-foreground truncate ml-2">{sp.scenario}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 单比分（兼容旧数据） */}
+                    {(!p.score_predictions || p.score_predictions.length === 0) && (
+                      <div className="bg-secondary rounded-lg p-3 text-center">
+                        <div className="text-xs text-muted-foreground mb-1">预测比分</div>
+                        <div className="text-2xl font-bold">{p.predicted_home_score} - {p.predicted_away_score}</div>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-3 text-sm">
                       <Badge className="bg-primary/20 text-primary border-primary/30">置信度：{p.confidence_label}</Badge>
                       <span className="text-primary font-medium">推荐：{p.recommendation_label}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">{p.recommendation_reason}</p>
+
+                    {/* 比分推理 */}
+                    {p.score_reasoning && (
+                      <div className="bg-muted/30 rounded-lg p-2.5 text-xs text-muted-foreground italic">
+                        💡 {p.score_reasoning}
+                      </div>
+                    )}
+
+                    {/* 战术分析 */}
+                    {p.tactical_analysis && (p.tactical_analysis.home_tactics || p.tactical_analysis.key_battle) && (
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-secondary rounded-lg p-2 text-center">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">{home.name}</div>
+                          <div className="text-[11px]">{p.tactical_analysis.home_tactics}</div>
+                        </div>
+                        <div className="bg-secondary rounded-lg p-2 text-center">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">{away.name}</div>
+                          <div className="text-[11px]">{p.tactical_analysis.away_tactics}</div>
+                        </div>
+                        <div className="bg-secondary rounded-lg p-2 text-center">
+                          <div className="text-[10px] text-muted-foreground mb-0.5">关键对决</div>
+                          <div className="text-[11px]">{p.tactical_analysis.key_battle}</div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 思维链 */}
+                    {p.chain_of_thought?.length > 0 && (
+                      <div>
+                        <div className="text-xs font-medium text-muted-foreground mb-1.5">🧠 AI 推理过程</div>
+                        <div className="space-y-1">
+                          {p.chain_of_thought.map((step: string, i: number) => (
+                            <div key={i} className="flex items-start gap-2 text-[11px] text-muted-foreground bg-secondary rounded p-2">
+                              <span className="text-primary font-mono shrink-0">{i + 1}.</span>
+                              <span>{step}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {runResult && (
                       <div className="text-[10px] text-muted-foreground/60 text-right">来源：用户AI预测引擎</div>
                     )}
