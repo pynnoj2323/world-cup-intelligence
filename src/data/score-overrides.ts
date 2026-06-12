@@ -3,9 +3,7 @@ export const KNOWN_SCORES: Record<string, { homeScore: number; awayScore: number
   // 6月11日 A组
   m001: { homeScore: 2, awayScore: 0, status: "finished" },   // 墨西哥 2-0 南非
   m002: { homeScore: 2, awayScore: 1, status: "finished" },   // 韩国 2-1 捷克
-  // 6月12日 B组
-  // m003: { homeScore: 0, awayScore: 0, status: "finished" }, // 加拿大 vs 波黑
-  // m016: { homeScore: 1, awayScore: 1, status: "finished" }, // 阿根廷 vs ... (例子)
+  // 6月12日 — B组/D组比赛尚未开赛（m007 加拿大vs波黑 6月13日03:00 BJT；m019 美国vs巴拉圭 6月13日09:00 BJT）
 };
 
 export function getKnownScore(matchId: string) {
