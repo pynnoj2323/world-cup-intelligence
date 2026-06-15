@@ -37,3 +37,18 @@ export type Session = Prisma.SessionModel
  * 
  */
 export type VerificationToken = Prisma.VerificationTokenModel
+/**
+ * Model PredictionRecord
+ * 
+ */
+export type PredictionRecord = Prisma.PredictionRecordModel
+/**
+ * Model Comment
+ * 
+ */
+export type Comment = Prisma.CommentModel
+/**
+ * Model MatchStatus
+ * 
+ */
+export type MatchStatus = Prisma.MatchStatusModel

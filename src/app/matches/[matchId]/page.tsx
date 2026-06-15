@@ -871,6 +871,9 @@ export default function MatchDetailPage() {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
+                          matchId,
+                          homeTeam: home.name,
+                          awayTeam: away.name,
                           predictedHomeWin: runResult!.home_win,
                           predictedDraw: runResult!.draw,
                           predictedAwayWin: runResult!.away_win,
@@ -879,9 +882,17 @@ export default function MatchDetailPage() {
                           confidence: runResult!.confidence,
                           confidenceLabel: runResult!.confidence_label,
                           recommendationLabel: runResult!.recommendation_label,
+                          recommendationReason: runResult!.recommendation_reason,
                           actualHomeScore: displayHomeScore,
                           actualAwayScore: displayAwayScore,
                           actualResult: displayHomeScore > displayAwayScore ? "home_win" : displayHomeScore < displayAwayScore ? "away_win" : "draw",
+                          scorePredictionsJson: JSON.stringify(runResult!.score_predictions),
+                          keyFactorsJson: JSON.stringify(runResult!.key_factors),
+                          riskFactorsJson: JSON.stringify(runResult!.risk_factors),
+                          narrativeSummary: runResult!.narrative_summary,
+                          scoreReasoning: runResult!.score_reasoning,
+                          tacticalAnalysisJson: JSON.stringify(runResult!.tactical_analysis),
+                          chainOfThoughtJson: JSON.stringify(runResult!.chain_of_thought),
                         }),
                       });
                       const data = await res.json();

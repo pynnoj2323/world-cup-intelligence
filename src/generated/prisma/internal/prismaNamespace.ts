@@ -387,7 +387,10 @@ export const ModelName = {
   User: 'User',
   Account: 'Account',
   Session: 'Session',
-  VerificationToken: 'VerificationToken'
+  VerificationToken: 'VerificationToken',
+  PredictionRecord: 'PredictionRecord',
+  Comment: 'Comment',
+  MatchStatus: 'MatchStatus'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -403,7 +406,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "account" | "session" | "verificationToken"
+    modelProps: "user" | "account" | "session" | "verificationToken" | "predictionRecord" | "comment" | "matchStatus"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -703,6 +706,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    PredictionRecord: {
+      payload: Prisma.$PredictionRecordPayload<ExtArgs>
+      fields: Prisma.PredictionRecordFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.PredictionRecordFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.PredictionRecordFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>
+        }
+        findFirst: {
+          args: Prisma.PredictionRecordFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.PredictionRecordFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>
+        }
+        findMany: {
+          args: Prisma.PredictionRecordFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>[]
+        }
+        create: {
+          args: Prisma.PredictionRecordCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>
+        }
+        createMany: {
+          args: Prisma.PredictionRecordCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.PredictionRecordCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>[]
+        }
+        delete: {
+          args: Prisma.PredictionRecordDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>
+        }
+        update: {
+          args: Prisma.PredictionRecordUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>
+        }
+        deleteMany: {
+          args: Prisma.PredictionRecordDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.PredictionRecordUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.PredictionRecordUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>[]
+        }
+        upsert: {
+          args: Prisma.PredictionRecordUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$PredictionRecordPayload>
+        }
+        aggregate: {
+          args: Prisma.PredictionRecordAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregatePredictionRecord>
+        }
+        groupBy: {
+          args: Prisma.PredictionRecordGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PredictionRecordGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.PredictionRecordCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.PredictionRecordCountAggregateOutputType> | number
+        }
+      }
+    }
+    Comment: {
+      payload: Prisma.$CommentPayload<ExtArgs>
+      fields: Prisma.CommentFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.CommentFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.CommentFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        findFirst: {
+          args: Prisma.CommentFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.CommentFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        findMany: {
+          args: Prisma.CommentFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>[]
+        }
+        create: {
+          args: Prisma.CommentCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        createMany: {
+          args: Prisma.CommentCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.CommentCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>[]
+        }
+        delete: {
+          args: Prisma.CommentDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        update: {
+          args: Prisma.CommentUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        deleteMany: {
+          args: Prisma.CommentDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.CommentUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.CommentUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>[]
+        }
+        upsert: {
+          args: Prisma.CommentUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$CommentPayload>
+        }
+        aggregate: {
+          args: Prisma.CommentAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateComment>
+        }
+        groupBy: {
+          args: Prisma.CommentGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CommentGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.CommentCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.CommentCountAggregateOutputType> | number
+        }
+      }
+    }
+    MatchStatus: {
+      payload: Prisma.$MatchStatusPayload<ExtArgs>
+      fields: Prisma.MatchStatusFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MatchStatusFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MatchStatusFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>
+        }
+        findFirst: {
+          args: Prisma.MatchStatusFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MatchStatusFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>
+        }
+        findMany: {
+          args: Prisma.MatchStatusFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>[]
+        }
+        create: {
+          args: Prisma.MatchStatusCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>
+        }
+        createMany: {
+          args: Prisma.MatchStatusCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MatchStatusCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>[]
+        }
+        delete: {
+          args: Prisma.MatchStatusDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>
+        }
+        update: {
+          args: Prisma.MatchStatusUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>
+        }
+        deleteMany: {
+          args: Prisma.MatchStatusDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MatchStatusUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MatchStatusUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>[]
+        }
+        upsert: {
+          args: Prisma.MatchStatusUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MatchStatusPayload>
+        }
+        aggregate: {
+          args: Prisma.MatchStatusAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMatchStatus>
+        }
+        groupBy: {
+          args: Prisma.MatchStatusGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MatchStatusGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MatchStatusCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MatchStatusCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -794,6 +1019,73 @@ export const VerificationTokenScalarFieldEnum = {
 export type VerificationTokenScalarFieldEnum = (typeof VerificationTokenScalarFieldEnum)[keyof typeof VerificationTokenScalarFieldEnum]
 
 
+export const PredictionRecordScalarFieldEnum = {
+  id: 'id',
+  matchId: 'matchId',
+  userId: 'userId',
+  homeTeam: 'homeTeam',
+  awayTeam: 'awayTeam',
+  group: 'group',
+  stage: 'stage',
+  predictedHomeWin: 'predictedHomeWin',
+  predictedDraw: 'predictedDraw',
+  predictedAwayWin: 'predictedAwayWin',
+  predictedHomeScore: 'predictedHomeScore',
+  predictedAwayScore: 'predictedAwayScore',
+  confidence: 'confidence',
+  confidenceLabel: 'confidenceLabel',
+  recommendationLabel: 'recommendationLabel',
+  recommendationReason: 'recommendationReason',
+  scorePredictionsJson: 'scorePredictionsJson',
+  keyFactorsJson: 'keyFactorsJson',
+  riskFactorsJson: 'riskFactorsJson',
+  narrativeSummary: 'narrativeSummary',
+  ensembleRuns: 'ensembleRuns',
+  voteAgreement: 'voteAgreement',
+  actualHomeScore: 'actualHomeScore',
+  actualAwayScore: 'actualAwayScore',
+  actualResult: 'actualResult',
+  resultUpdatedAt: 'resultUpdatedAt',
+  resultCorrect: 'resultCorrect',
+  scoreCorrect: 'scoreCorrect',
+  scoreDiff: 'scoreDiff',
+  accuracyScore: 'accuracyScore',
+  isRisky: 'isRisky',
+  riskNotes: 'riskNotes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PredictionRecordScalarFieldEnum = (typeof PredictionRecordScalarFieldEnum)[keyof typeof PredictionRecordScalarFieldEnum]
+
+
+export const CommentScalarFieldEnum = {
+  id: 'id',
+  matchId: 'matchId',
+  userId: 'userId',
+  content: 'content',
+  parentId: 'parentId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  predictionId: 'predictionId'
+} as const
+
+export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]
+
+
+export const MatchStatusScalarFieldEnum = {
+  id: 'id',
+  matchId: 'matchId',
+  status: 'status',
+  homeScore: 'homeScore',
+  awayScore: 'awayScore',
+  updatedAt: 'updatedAt',
+  updatedBy: 'updatedBy'
+} as const
+
+export type MatchStatusScalarFieldEnum = (typeof MatchStatusScalarFieldEnum)[keyof typeof MatchStatusScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -877,6 +1169,13 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 /**
@@ -993,6 +1292,9 @@ export type GlobalOmitConfig = {
   account?: Prisma.AccountOmit
   session?: Prisma.SessionOmit
   verificationToken?: Prisma.VerificationTokenOmit
+  predictionRecord?: Prisma.PredictionRecordOmit
+  comment?: Prisma.CommentOmit
+  matchStatus?: Prisma.MatchStatusOmit
 }
 
 /* Types for Logging */

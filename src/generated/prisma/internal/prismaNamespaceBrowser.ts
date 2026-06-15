@@ -54,7 +54,10 @@ export const ModelName = {
   User: 'User',
   Account: 'Account',
   Session: 'Session',
-  VerificationToken: 'VerificationToken'
+  VerificationToken: 'VerificationToken',
+  PredictionRecord: 'PredictionRecord',
+  Comment: 'Comment',
+  MatchStatus: 'MatchStatus'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -123,6 +126,73 @@ export const VerificationTokenScalarFieldEnum = {
 } as const
 
 export type VerificationTokenScalarFieldEnum = (typeof VerificationTokenScalarFieldEnum)[keyof typeof VerificationTokenScalarFieldEnum]
+
+
+export const PredictionRecordScalarFieldEnum = {
+  id: 'id',
+  matchId: 'matchId',
+  userId: 'userId',
+  homeTeam: 'homeTeam',
+  awayTeam: 'awayTeam',
+  group: 'group',
+  stage: 'stage',
+  predictedHomeWin: 'predictedHomeWin',
+  predictedDraw: 'predictedDraw',
+  predictedAwayWin: 'predictedAwayWin',
+  predictedHomeScore: 'predictedHomeScore',
+  predictedAwayScore: 'predictedAwayScore',
+  confidence: 'confidence',
+  confidenceLabel: 'confidenceLabel',
+  recommendationLabel: 'recommendationLabel',
+  recommendationReason: 'recommendationReason',
+  scorePredictionsJson: 'scorePredictionsJson',
+  keyFactorsJson: 'keyFactorsJson',
+  riskFactorsJson: 'riskFactorsJson',
+  narrativeSummary: 'narrativeSummary',
+  ensembleRuns: 'ensembleRuns',
+  voteAgreement: 'voteAgreement',
+  actualHomeScore: 'actualHomeScore',
+  actualAwayScore: 'actualAwayScore',
+  actualResult: 'actualResult',
+  resultUpdatedAt: 'resultUpdatedAt',
+  resultCorrect: 'resultCorrect',
+  scoreCorrect: 'scoreCorrect',
+  scoreDiff: 'scoreDiff',
+  accuracyScore: 'accuracyScore',
+  isRisky: 'isRisky',
+  riskNotes: 'riskNotes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type PredictionRecordScalarFieldEnum = (typeof PredictionRecordScalarFieldEnum)[keyof typeof PredictionRecordScalarFieldEnum]
+
+
+export const CommentScalarFieldEnum = {
+  id: 'id',
+  matchId: 'matchId',
+  userId: 'userId',
+  content: 'content',
+  parentId: 'parentId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  predictionId: 'predictionId'
+} as const
+
+export type CommentScalarFieldEnum = (typeof CommentScalarFieldEnum)[keyof typeof CommentScalarFieldEnum]
+
+
+export const MatchStatusScalarFieldEnum = {
+  id: 'id',
+  matchId: 'matchId',
+  status: 'status',
+  homeScore: 'homeScore',
+  awayScore: 'awayScore',
+  updatedAt: 'updatedAt',
+  updatedBy: 'updatedBy'
+} as const
+
+export type MatchStatusScalarFieldEnum = (typeof MatchStatusScalarFieldEnum)[keyof typeof MatchStatusScalarFieldEnum]
 
 
 export const SortOrder = {
