@@ -18,6 +18,12 @@ export const KNOWN_SCORES: Record<string, { homeScore: number; awayScore: number
   // 6月14日 F组
   m031: { homeScore: 2, awayScore: 2, status: "finished" },   // 荷兰 2-2 日本（央视/新浪）
   m032: { homeScore: 1, awayScore: 5, status: "finished" },   // 突尼斯 1-5 瑞典（央视）
+  // 6月15日 G组
+  m037: { homeScore: 1, awayScore: 1, status: "finished" },   // 比利时 1-1 埃及（新浪/东南网/澎湃）
+  m038: { homeScore: 2, awayScore: 2, status: "finished" },   // 伊朗 2-2 新西兰（中新网/每日经济新闻/澎湃）
+  // 6月15日 H组
+  m043: { homeScore: 0, awayScore: 0, status: "finished" },   // 西班牙 0-0 佛得角（新浪/澎湃）
+  m044: { homeScore: 1, awayScore: 1, status: "finished" },   // 沙特 1-1 乌拉圭（央视/腾讯/澎湃）
 };
 
 export function getKnownScore(matchId: string) {
