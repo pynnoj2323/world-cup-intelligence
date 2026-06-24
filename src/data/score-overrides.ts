@@ -75,6 +75,7 @@ export const KNOWN_SCORES: Record<string, { homeScore: number; awayScore: number
   m062: { homeScore: 1, awayScore: 3, status: "finished" },   // 乌兹别克斯坦 1-3 哥伦比亚
   // 6月24日 K组 第2轮
   m063: { homeScore: 5, awayScore: 0, status: "finished" },   // 葡萄牙 5-0 乌兹别克斯坦（新浪/央视/C罗双响六届破门）
+  m064: { homeScore: 1, awayScore: 0, status: "finished" },   // 哥伦比亚 1-0 刚果(金)（央视/穆尼奥斯76分钟制胜）
 
   // 6月17日 L组 第1轮
   m067: { homeScore: 4, awayScore: 2, status: "finished" },   // 英格兰 4-2 克罗地亚
