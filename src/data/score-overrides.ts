@@ -59,18 +59,29 @@ export const KNOWN_SCORES: Record<string, { homeScore: number; awayScore: number
   // 6月16日 I组 第1轮
   m049: { homeScore: 3, awayScore: 1, status: "finished" },   // 法国 3-1 塞内加尔
   m050: { homeScore: 1, awayScore: 4, status: "finished" },   // 伊拉克 1-4 挪威
+  // 6月23日 I组 第2轮
+  m051: { homeScore: 3, awayScore: 0, status: "finished" },   // 法国 3-0 伊拉克（央视/姆巴佩双响后全胜领跑）
+  m052: { homeScore: 3, awayScore: 2, status: "finished" },   // 挪威 3-2 塞内加尔（腾讯/哈兰德双响，挪威法国携手出线）
 
   // 6月16日 J组 第1轮
   m055: { homeScore: 3, awayScore: 0, status: "finished" },   // 阿根廷 3-0 阿尔及利亚
   m056: { homeScore: 3, awayScore: 1, status: "finished" },   // 奥地利 3-1 约旦
+  // 6月23日 J组 第2轮
+  m057: { homeScore: 2, awayScore: 0, status: "finished" },   // 阿根廷 2-0 奥地利（新浪/阿根廷6分锁定小组第一）
+  m058: { homeScore: 2, awayScore: 1, status: "finished" },   // 阿尔及利亚 2-1 约旦（新浪/约旦两连败首支出局亚足联球队）
 
   // 6月17日 K组 第1轮
   m061: { homeScore: 1, awayScore: 1, status: "finished" },   // 葡萄牙 1-1 刚果(金)
   m062: { homeScore: 1, awayScore: 3, status: "finished" },   // 乌兹别克斯坦 1-3 哥伦比亚
+  // 6月24日 K组 第2轮
+  m063: { homeScore: 5, awayScore: 0, status: "finished" },   // 葡萄牙 5-0 乌兹别克斯坦（新浪/央视/C罗双响六届破门）
 
   // 6月17日 L组 第1轮
   m067: { homeScore: 4, awayScore: 2, status: "finished" },   // 英格兰 4-2 克罗地亚
   m068: { homeScore: 1, awayScore: 0, status: "finished" },   // 加纳 1-0 巴拿马
+  // 6月24日 L组 第2轮
+  m069: { homeScore: 0, awayScore: 0, status: "finished" },   // 英格兰 0-0 加纳（央视/闷平握手言和）
+  m070: { homeScore: 1, awayScore: 0, status: "finished" },   // 克罗地亚 1-0 巴拿马（每经/布迪米尔破门，巴拿马出局）
 };
 
 export function getKnownScore(matchId: string) {
