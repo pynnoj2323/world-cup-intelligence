@@ -83,6 +83,18 @@ export const KNOWN_SCORES: Record<string, { homeScore: number; awayScore: number
   // 6月24日 L组 第2轮
   m069: { homeScore: 0, awayScore: 0, status: "finished" },   // 英格兰 0-0 加纳（央视/闷平握手言和）
   m070: { homeScore: 1, awayScore: 0, status: "finished" },   // 克罗地亚 1-0 巴拿马（每经/布迪米尔破门，巴拿马出局）
+
+  // 6月24日 A组 第3轮
+  m005: { homeScore: 3, awayScore: 0, status: "finished" },   // 墨西哥 3-0 捷克（央视/三战全胜头名出线）
+  m006: { homeScore: 0, awayScore: 1, status: "finished" },   // 韩国 0-1 南非（央视/马塞科63分钟制胜，南非小组第二出线）
+
+  // 6月24日 B组 第3轮
+  m011: { homeScore: 1, awayScore: 2, status: "finished" },   // 加拿大 1-2 瑞士（央视/瑞士B组头名，加拿大第二出线）
+  m012: { homeScore: 1, awayScore: 3, status: "finished" },   // 卡塔尔 1-3 波黑（央视/波黑4分小组第三，卡塔尔垫底出局）
+
+  // 6月24日 C组 第3轮
+  m017: { homeScore: 0, awayScore: 3, status: "finished" },   // 苏格兰 0-3 巴西（央视/维尼修斯双响，巴西头名晋级）
+  m018: { homeScore: 4, awayScore: 2, status: "finished" },   // 摩洛哥 4-2 海地（央视/摩洛哥小组第2，海地三战全负出局）
 };
 
 export function getKnownScore(matchId: string) {
