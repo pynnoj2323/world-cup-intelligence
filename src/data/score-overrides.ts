@@ -119,6 +119,18 @@ export const KNOWN_SCORES: Record<string, { homeScore: number; awayScore: number
   // 6月27日 I组 第3轮
   m053: { homeScore: 1, awayScore: 4, status: "finished" },   // 挪威 1-4 法国（央视/搜狐/法国全胜头名，挪威第二）
   m054: { homeScore: 5, awayScore: 0, status: "finished" },   // 塞内加尔 5-0 伊拉克（央视/搜狐/塞内加尔3分小组第三晋级）
+
+  // 6月28日 J组 第3轮
+  m059: { homeScore: 3, awayScore: 1, status: "finished" },   // 阿根廷 3-1 约旦（腾讯/央视/阿根廷三战全胜头名出线）
+  m060: { homeScore: 3, awayScore: 3, status: "finished" },   // 奥地利 3-3 阿尔及利亚（腾讯/央视/补时读秒绝平，奥地利小组第二）
+
+  // 6月28日 K组 第3轮
+  m065: { homeScore: 0, awayScore: 0, status: "finished" },   // 葡萄牙 0-0 哥伦比亚（央视/百度百科/哥伦比亚头名出线）
+  m066: { homeScore: 3, awayScore: 1, status: "finished" },   // 刚果(金) 3-1 乌兹别克斯坦（百度百科/民主刚果逆转取首胜）
+
+  // 6月28日 L组 第3轮
+  m071: { homeScore: 2, awayScore: 0, status: "finished" },   // 英格兰 2-0 巴拿马（央视/英格兰锁定小组第一）
+  m072: { homeScore: 2, awayScore: 1, status: "finished" },   // 克罗地亚 2-1 加纳（央视/克罗地亚小组第二出线）
 };
 
 export function getKnownScore(matchId: string) {
