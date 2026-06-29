@@ -131,6 +131,10 @@ export const KNOWN_SCORES: Record<string, { homeScore: number; awayScore: number
   // 6月28日 L组 第3轮
   m071: { homeScore: 2, awayScore: 0, status: "finished" },   // 英格兰 2-0 巴拿马（央视/英格兰锁定小组第一）
   m072: { homeScore: 2, awayScore: 1, status: "finished" },   // 克罗地亚 2-1 加纳（央视/克罗地亚小组第二出线）
+
+  // ===== 淘汰赛 1/16决赛 =====
+  // 6月29日 1/16决赛 第1场（洛杉矶SoFi体育场）
+  m073: { homeScore: 0, awayScore: 1, status: "finished" },   // 南非 0-1 加拿大（央视/新华社/补时绝杀，加拿大队史首进16强）
 };
 
 export function getKnownScore(matchId: string) {
