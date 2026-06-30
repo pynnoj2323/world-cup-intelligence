@@ -135,6 +135,13 @@ export const KNOWN_SCORES: Record<string, { homeScore: number; awayScore: number
   // ===== 淘汰赛 1/16决赛 =====
   // 6月29日 1/16决赛 第1场（洛杉矶SoFi体育场）
   m073: { homeScore: 0, awayScore: 1, status: "finished" },   // 南非 0-1 加拿大（央视/新华社/补时绝杀，加拿大队史首进16强）
+
+  // 6月30日 1/16决赛 第2场（休斯顿NRG体育场）
+  m074: { homeScore: 2, awayScore: 1, status: "finished" },   // 巴西 2-1 日本（央视/腾讯/马丁内利补时绝杀，日本遭逆转出局）
+  // 6月30日 1/16决赛 第3场（场地待查）
+  m075: { homeScore: 1, awayScore: 1, status: "finished" },   // 德国 1-1 巴拉圭（新浪/点球大战巴拉圭胜，德国止步32强）
+  // 6月30日 1/16决赛 第4场（场地待查）
+  m076: { homeScore: 1, awayScore: 1, status: "finished" },   // 荷兰 1-1 摩洛哥（央视/新浪/点球大战摩洛哥胜，荷兰出局）
 };
 
 export function getKnownScore(matchId: string) {
